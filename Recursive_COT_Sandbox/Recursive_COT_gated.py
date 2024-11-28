@@ -61,15 +61,16 @@ def holistic_feedback_gate(problem_description, steps):
     for i, step in enumerate(steps, 1):
         prompt += f"Step {i}: {step}\n"
     prompt += (
-        "Does the reasoning make sense in relation to the problem's logic and context? "
-        "Are there any critical flaws or incorrect assumptions that would invalidate the reasoning so far? "
-        "Does the reasoning and steps taken adress the problem from a natural, logical, and reasonable perspective? Consider all factors and constraints that may not have been explicitly stated in the problem but rather can be derived. "
+        "The Steps provided above is the reasoning path we have taken so far in sequential order"
+        "Does the latest reasoning make sense in relation to the problem's logic and context? "
+        "Are there any critical flaws or incorrect assumptions that would invalidate the latest reasoning so far? "
+        "Do the latest reasoning and steps taken adress the problem from a natural, logical, and reasonable perspective? Consider all factors and constraints that may not have been explicitly stated in the problem but rather can be derived. "
         "Use the most realistic and logical assumptions alike a human would given the perspective of not just this problem but also all natural and logical constraints. "
         "If so, provide 'No' as feedback, explain the flaws, and suggest corrected steps."
         "Otherwise, provide 'Yes' and briefly justify why the reasoning is acceptable to proceed."
     )
 
-    response = query_gpt(prompt, max_tokens=300, temperature=0.9, presence_penalty=0.7)
+    response = query_gpt(prompt, max_tokens=900, temperature=0.85, presence_penalty=0.9)
     return response
 
 
@@ -85,12 +86,12 @@ def global_consistency_check(problem_description, steps):
     for i, step in enumerate(steps, 1):
         prompt += f"Step {i}: {step}\n"
     prompt += (
-        "Does this reasoning holistically address the problem, considering all key factors? Consider uniqueness, consistency, and completeness. Consider how a human approaches this problem and assumes constraints about the problem that may not have been implied "
-        "Does the reasoning and steps taken adress the problem from a natural, logical, and reasonable perspective? Consider all factors and constraints that may not have been explicitly stated in the problem but rather can be derived. "
+        "Does this reasoning holistically address the prompt, considering all key factors? Consider uniqueness, consistency, and completeness. Consider how a human approaches this problem and assumes constraints about the problem that may not have been implied "
+        "Does the reasoning and steps taken adress the prompt from a natural, logical, and reasonable perspective? Consider all factors and constraints that may not have been explicitly stated in the problem but rather can be derived. Assume natural laws of physics and human behavior apply in logical ways of reasoning"
         "If not, explain the flaws and provide a corrected final answer."
     )
 
-    return query_gpt(prompt, max_tokens=900, temperature=0.9)
+    return query_gpt(prompt, max_tokens=1000, temperature=0.7, presence_penalty=0.5)
 
 
 def solve_problem_holistically(problem_description, max_steps=10):
@@ -192,7 +193,7 @@ if __name__ == "__main__":
     )
 
     # Solve a specific problem
-    steps = solve_problem_holistically(problem1,max_steps=7)
+    steps = solve_problem_holistically(problem10,max_steps=10)
 
     with open("Recursive_COT_Gated_steps.txt", "w") as f:
         for i, step in enumerate(steps, 1):
@@ -203,16 +204,16 @@ if __name__ == "__main__":
     
     Open Sample Set Scores & Findings Per Question-
 
-    1. 
-    2.
-    3.
-    4.
-    5.
-    6.
-    7.
-    8.
-    9.
-    10.
+    1. 1/1
+    2. 0.5/1 --> Incorrect but suggested correct answer if it was given more information about timing
+    3. 1/1
+    4. 0/1
+    5. 1/1
+    6. 0/1
+    7. 0/1
+    8. 1/1
+    9. 0.5/1 --> Incorrect but suggested correct answer if it was given more information about integrity
+    10. 0/1
     
     
     """
