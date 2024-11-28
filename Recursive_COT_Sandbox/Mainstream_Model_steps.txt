@@ -1,0 +1,10 @@
+Mainstream Model Solution: To solve this problem, we need to calculate the total number of ice cubes placed over the three minutes and the average number of ice cubes placed per minute, then determine the number of ice cubes remaining after accounting for melting.
+
+1. **Determine the average number of ice cubes per minute:**
+   Given that the average number of ice cubes per minute is 5, and there are 4 minutes in total, the total number of ice cubes placed over the 4 minutes is:
+   \[
+   \text{Total ice cubes} = \text{Average per minute} \times \text{Total minutes} = 5 \times 4 = 20
+   \]
+
+2. **Ice cubes placed in each minute:**
+   -
