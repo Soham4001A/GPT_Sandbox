@@ -41,6 +41,7 @@ def generate_step(problem_description, previous_steps=None):
             prompt += f"Step {i}: {step}\n"
         prompt += (
             "What is the next logical step to solve the problem based on the reasoning so far?"
+            "If you believe there are no more steps that need to be taken at all, reply with 'NO_MORE_STEPS' "
         )
     else:
         prompt += "What is the first step to solve this problem?\n"
@@ -114,7 +115,7 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
                 steps[-1] = next_step  # Replace the invalid step
             else:
                 print(f"Step Accepted: {next_step}")
-                if next_step.lower() in ["done", "complete", "finished"]:
+                if next_step.lower() in ["done", "complete", "finished", "NO_MORE_STEPS"]:
                     break
 
         # Add the reasoning chain to the list
@@ -177,19 +178,6 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
     print("\nFinal Solution:")
     print(final_solution)
 
-    # Save results to a file
-    with open("Recursive_COT_Gated_steps_with_consistency.txt", "w") as f:
-        f.write("Problem Description:\n")
-        f.write(problem_description + "\n\n")
-        f.write("Reasoning Chains:\n")
-        for chain_num, chain in enumerate(reasoning_chains, 1):
-            f.write(f"Reasoning Chain {chain_num}:\n")
-            for i, step in enumerate(chain, 1):
-                f.write(f"  Step {i}: {step}\n")
-            f.write("\n")
-        f.write("\nFinal Solution:\n")
-        f.write(final_solution)
-
     return final_solution
 
 
@@ -249,9 +237,9 @@ if __name__ == "__main__":
     )
 
     # Solve a specific problem
-    final_solution = solve_problem_holistically(problem10, max_steps=10, max_restarts=3)
+    final_solution = solve_problem_holistically(problem4, max_steps=5, max_restarts=3)
 
-    print("\nFinal Answer:\n", final_answer)
+    print("\nFinal Answer:\n", final_solution)
 
     
     """
