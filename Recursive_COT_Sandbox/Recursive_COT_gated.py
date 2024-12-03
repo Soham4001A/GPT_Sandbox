@@ -5,7 +5,7 @@ from secret_files import OpenAI_API_KEY
 client = OpenAI(api_key=OpenAI_API_KEY)
 
 
-def query_gpt(prompt, max_tokens=500, temperature=0.7, presence_penalty= 0):
+def query_gpt(prompt, max_tokens=1500, temperature=0.7, presence_penalty= 0):
     """
     Generic function to query GPT-4o.
     """
@@ -74,7 +74,7 @@ def holistic_feedback_gate(problem_description, steps):
         "Otherwise, provide 'Yes' and briefly justify why the reasoning is acceptable to proceed."
     )
 
-    response = query_gpt(prompt, max_tokens=900, temperature=0.85, presence_penalty=0.9)
+    response = query_gpt(prompt, max_tokens=1500, temperature=0.85, presence_penalty=0.9)
     return response
 
 
@@ -261,7 +261,21 @@ if __name__ == "__main__":
     )
 
     problem9 = (
-        "You are an expert at reasoning and you always pick the most realistic answer. Think step by step and output your reasoning followed by your final answer using the following format: Final Answer: X where X is one of the letters A, B, C, D, E, or F.\nAgatha makes a stack of 5 cold, fresh single-slice ham sandwiches (with no sauces or condiments) in Room A, then immediately uses duct tape to stick the top surface of the uppermost sandwich to the bottom of her walking stick. She then walks to Room B, with her walking stick, so how many whole sandwiches are there now, in each room?\nA. 4 whole sandwiches in room A, 0 whole sandwiches in Room B\nB. no sandwiches anywhere\nC. 4 whole sandwiches in room B, 1 whole sandwich in Room A\nD. All 5 whole sandwiches in Room B\nE. 4 whole sandwiches in Room B, 1 whole sandwiches in room A\nF. All 5 whole sandwiches in Room A\n",
+    "Agatha makes a stack of 5 cold, fresh single-slice ham sandwiches (with no sauces or condiments) in Room A, "
+    "then immediately uses duct tape to stick the top surface of the uppermost sandwich to the bottom of her walking stick. "
+    "She then walks to Room B, with her walking stick, so how many whole sandwiches are there now, in each room?\n"
+    "A. 4 whole sandwiches in room A, 0 whole sandwiches in Room B\n"
+    "B. no sandwiches anywhere\n"
+    "C. 4 whole sandwiches in room B, 1 whole sandwich in Room A\n"
+    "D. All 5 whole sandwiches in Room B\n"
+    "E. 4 whole sandwiches in Room B, 1 whole sandwiches in room A\n"
+    "F. All 5 whole sandwiches in Room A\n"
+    )
+
+    problem9a = (
+    "Agatha makes a stack of 5 cold, fresh single-slice ham sandwiches (with no sauces or condiments) in Room A, "
+    "then immediately uses duct tape to stick the top surface of the uppermost sandwich to the bottom of her walking stick. "
+    "She then walks to Room B, with her walking stick, so how many whole sandwiches are there now, in each room?\n"
     )
 
     problem10 = (
@@ -269,7 +283,7 @@ if __name__ == "__main__":
     )
 
     # Solve a specific problem
-    final_solution = solve_problem_holistically(problem1, max_steps=10, max_restarts=3)
+    final_solution = solve_problem_holistically(problem9a, max_steps=10, max_restarts=3)
 
     print("\nFinal Answer:\n", final_solution)
 
