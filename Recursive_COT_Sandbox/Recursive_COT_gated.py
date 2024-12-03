@@ -95,10 +95,10 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
         # Include identified assumptions in the problem description for restarts
         if identified_assumptions:
             problem_with_assumptions = (
-                problem_description + 
-                "\nConsider the following identified assumptions and alternative focuses:\n" +
-                "\n".join(f"- {assumption}" for assumption in identified_assumptions)
-            )
+            problem_description +
+            "\nConsider the following identified assumptions and alternative focuses:\n" +
+            "\n".join(f"- {assumption}" for assumption in identified_assumptions)
+        )
         else:
             problem_with_assumptions = problem_description
 
