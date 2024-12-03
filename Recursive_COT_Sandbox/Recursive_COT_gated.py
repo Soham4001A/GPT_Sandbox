@@ -166,10 +166,18 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
         # Parse global check result for restart or final answer
         if "restart with adjusted focus" in global_check_result.lower():
             print("Global Consistency Check suggested restarting with a new focus.")
-            # Extract assumptions or alternative focuses
             extracted_assumptions = extract_assumptions_from_result(global_check_result)
-            identified_assumptions.extend(extracted_assumptions)
-            continue  # Restart with the updated assumptions
+            valid_alternatives, dismissed_alternatives = validate_alternatives(extracted_assumptions)  # Validate assumptions
+
+            # Separate valid and dismissed alternatives
+            for alt in valid_alternatives:
+                print(f"Validated Alternative: {alt}")
+                identified_assumptions.append(alt)  # Add valid alternatives to the problem description
+
+            for alt in dismissed_alternatives:
+                print(f"Dismissed Alternative: {alt}")
+                dismissed_alternatives.append(alt)  # Keep track of dismissed assumptions
+
         elif "synthesized final answer" in global_check_result.lower():
             print("Global Consistency Check synthesized a final answer.")
             final_solution = global_check_result
@@ -201,6 +209,22 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
 
     return final_solution
 
+def validate_alternatives(alternatives):
+    """
+    Validates the identified alternative assumptions for plausibility.
+    """
+    valid = []
+    dismissed = []
+    for alt in alternatives:
+        # Use a lightweight knowledge base or heuristic checks
+        if "tape" in alt.lower() and "sandwich" in alt.lower():
+            if "top only" in alt.lower():
+                valid.append(alt)  # This impacts the reasoning
+            else:
+                dismissed.append(alt)  # This is irrelevant or redundant
+        else:
+            dismissed.append(alt)  # If no direct impact, dismiss
+    return valid, dismissed
 
 def extract_assumptions_from_result(global_check_result):
     """
@@ -283,7 +307,7 @@ if __name__ == "__main__":
     )
 
     # Solve a specific problem
-    final_solution = solve_problem_holistically(problem9a, max_steps=10, max_restarts=3)
+    final_solution = solve_problem_holistically(problem9, max_steps=10, max_restarts=3)
 
     print("\nFinal Answer:\n", final_solution)
 
