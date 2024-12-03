@@ -41,10 +41,12 @@ def generate_step(problem_description, previous_steps=None):
             prompt += f"Step {i}: {step}\n"
         prompt += (
             "What is the next logical step to solve the problem based on the reasoning so far?"
+            "When reasoning about this problem, consider any environmental, contextual, or real-world factors that might influence the situation. "
             "If you believe there are no more steps that need to be taken at all, reply with 'NO_MORE_STEPS' "
         )
     else:
-        prompt += "What is the first step to solve this problem?\n"
+        prompt += "What is the first step to solve this problem? When reasoning about this problem, consider any environmental, contextual, or real-world factors that might influence the situation."
+        
 
     return query_gpt(prompt)
 
