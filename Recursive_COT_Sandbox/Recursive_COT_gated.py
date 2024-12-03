@@ -156,7 +156,7 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
             "Within the chains of thought and problem, are there any assumptions that were not explicitly stated in the problem but are necessary for a logical solution? "
             "If there are unexplored assumptions or alternative logical paths not yet tested, propose a new focus to guide a reasoning chain restart. "
             "If all relevant assumptions have been sufficiently explored, synthesize the most logical and reasonable answer from the chains provided.\n\n"
-            "If any assumptions are identified, include 'restart with adjusted focus' and suggest those assumptions as the new focus. Otherwise, provide the synthesized final answer."
+            "If any assumptions are identified, include 'restart with adjusted focus' and suggest those assumptions."
         )
 
         global_check_result = query_gpt(global_check_prompt, max_tokens=1500, temperature=0.8, presence_penalty=0.5)
@@ -166,17 +166,8 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
         # Parse global check result for restart or final answer
         if "restart with adjusted focus" in global_check_result.lower():
             print("Global Consistency Check suggested restarting with a new focus.")
-            extracted_assumptions = extract_assumptions_from_result(global_check_result)
-            valid_alternatives, dismissed_alternatives = validate_alternatives(extracted_assumptions)  # Validate assumptions
-
-            # Separate valid and dismissed alternatives
-            for alt in valid_alternatives:
-                print(f"Validated Alternative: {alt}")
-                identified_assumptions.append(alt)  # Add valid alternatives to the problem description
-
-            for alt in dismissed_alternatives:
-                print(f"Dismissed Alternative: {alt}")
-                dismissed_alternatives.append(alt)  # Keep track of dismissed assumptions
+            identified_assumptions.append(global_check_result.split("restart with adjusted focus: ")[-1])
+            continue
 
         elif "synthesized final answer" in global_check_result.lower():
             print("Global Consistency Check synthesized a final answer.")
@@ -208,34 +199,6 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
     print(final_solution)
 
     return final_solution
-
-def validate_alternatives(alternatives):
-    """
-    Validates the identified alternative assumptions for plausibility.
-    """
-    valid = []
-    dismissed = []
-    for alt in alternatives:
-        # Use a lightweight knowledge base or heuristic checks
-        if "tape" in alt.lower() and "sandwich" in alt.lower():
-            if "top only" in alt.lower():
-                valid.append(alt)  # This impacts the reasoning
-            else:
-                dismissed.append(alt)  # This is irrelevant or redundant
-        else:
-            dismissed.append(alt)  # If no direct impact, dismiss
-    return valid, dismissed
-
-def extract_assumptions_from_result(global_check_result):
-    """
-    Extracts assumptions or alternative focuses suggested in the global check result.
-    """
-    assumptions = []
-    for line in global_check_result.split("\n"):
-        if line.strip().startswith("- "):  # Assumptions typically start with a dash or similar
-            assumptions.append(line.strip()[2:])
-    return assumptions
-
 
 if __name__ == "__main__":
     # Define problems
@@ -307,7 +270,7 @@ if __name__ == "__main__":
     )
 
     # Solve a specific problem
-    final_solution = solve_problem_holistically(problem9, max_steps=10, max_restarts=3)
+    final_solution = solve_problem_holistically(problem7, max_steps=10, max_restarts=3)
 
     print("\nFinal Answer:\n", final_solution)
 
