@@ -67,6 +67,7 @@ def holistic_feedback_gate(problem_description, steps):
         "Are there any critical flaws or incorrect assumptions that would invalidate the latest reasoning so far? "
         "Do the latest reasoning and steps taken adress the problem from a natural, logical, and reasonable perspective? Consider all factors and constraints that may not have been explicitly stated in the problem but rather can be derived. "
         "Use the most realistic and logical assumptions alike a human would given the perspective of not just this problem but also all natural and logical constraints. "
+        "Do the laws of physics and the principle of natural logic apply to the reasoning step that was generated? In other words, would a human read or hear the problem and reason in this manner?"
         "If so, provide 'No' as feedback, explain the flaws, and suggest corrected steps."
         "Otherwise, provide 'Yes' and briefly justify why the reasoning is acceptable to proceed."
     )
@@ -82,16 +83,27 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
     """
     reasoning_chains = []  # Store all reasoning chains
     final_solution = None
+    identified_assumptions = []  # Store assumptions and alternative focuses
 
     for restart_num in range(max_restarts):
         print(f"\n--- Restart {restart_num + 1} ---")
         steps = []  # Reset steps for this reasoning chain
         feedback_log = []  # Track feedback for debugging
 
+        # Include identified assumptions in the problem description for restarts
+        if identified_assumptions:
+            problem_with_assumptions = (
+                problem_description + 
+                "\nConsider the following identified assumptions and alternative focuses:\n" +
+                "\n".join(f"- {assumption}" for assumption in identified_assumptions)
+            )
+        else:
+            problem_with_assumptions = problem_description
+
         # Generate reasoning chain iteratively
         for step_num in range(max_steps):
             # Generate the next reasoning step
-            next_step = generate_step(problem_description, previous_steps=steps)
+            next_step = generate_step(problem_with_assumptions, previous_steps=steps)
 
             if not next_step or "Error" in next_step:
                 print(f"Error generating step: {next_step}")
@@ -105,7 +117,7 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
                 break  # Exit the loop early
 
             # Validate the reasoning with the feedback gate
-            feedback = holistic_feedback_gate(problem_description, steps)
+            feedback = holistic_feedback_gate(problem_with_assumptions, steps)
             feedback_log.append(feedback)
 
             if "No" in feedback:
@@ -114,7 +126,7 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
 
                 # Correct the step based on feedback
                 next_step = generate_step(
-                    problem_description,
+                    problem_with_assumptions,
                     previous_steps=steps[:-1],  # Exclude the invalid last step
                 )
                 steps[-1] = next_step  # Replace the invalid step
@@ -128,7 +140,7 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
         global_check_prompt = (
             "You are an advanced reasoning AI tasked with validating multiple reasoning chains "
             "to holistically address a problem. Analyze all the chains below for assumptions, flaws, or inconsistencies.\n\n"
-            f"Problem Description:\n{problem_description}\n\n"
+            f"Problem Description:\n{problem_with_assumptions}\n\n"
             "Here are the reasoning chains generated so far:\n"
         )
         for chain_num, chain in enumerate(reasoning_chains, 1):
@@ -142,7 +154,7 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
             "Within the chains of thought and problem, are there any assumptions that were not explicitly stated in the problem but are necessary for a logical solution? "
             "If there are unexplored assumptions or alternative logical paths not yet tested, propose a new focus to guide a reasoning chain restart. "
             "If all relevant assumptions have been sufficiently explored, synthesize the most logical and reasonable answer from the chains provided.\n\n"
-            "If a new focus is required, include 'restart with adjusted focus'. Otherwise, provide the synthesized final answer."
+            "If any assumptions are identified, include 'restart with adjusted focus' and suggest those assumptions as the new focus. Otherwise, provide the synthesized final answer."
         )
 
         global_check_result = query_gpt(global_check_prompt, max_tokens=1500, temperature=0.8, presence_penalty=0.5)
@@ -152,7 +164,10 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
         # Parse global check result for restart or final answer
         if "restart with adjusted focus" in global_check_result.lower():
             print("Global Consistency Check suggested restarting with a new focus.")
-            continue  # Restart with a new iteration
+            # Extract assumptions or alternative focuses
+            extracted_assumptions = extract_assumptions_from_result(global_check_result)
+            identified_assumptions.extend(extracted_assumptions)
+            continue  # Restart with the updated assumptions
         elif "synthesized final answer" in global_check_result.lower():
             print("Global Consistency Check synthesized a final answer.")
             final_solution = global_check_result
@@ -165,7 +180,7 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
             "You are an advanced reasoning AI tasked with selecting the most logical and reasonable reasoning chain "
             "from the options below. Analyze each chain for completeness, context alignment, and assumptions. Choose the chain "
             "that provides the most realistic solution to the problem described.\n\n"
-            f"Problem Description:\n{problem_description}\n\n"
+            f"Problem Description:\n{problem_with_assumptions}\n\n"
             "Here are the reasoning chains generated so far:\n"
         )
         for chain_num, chain in enumerate(reasoning_chains, 1):
@@ -183,6 +198,17 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
     print(final_solution)
 
     return final_solution
+
+
+def extract_assumptions_from_result(global_check_result):
+    """
+    Extracts assumptions or alternative focuses suggested in the global check result.
+    """
+    assumptions = []
+    for line in global_check_result.split("\n"):
+        if line.strip().startswith("- "):  # Assumptions typically start with a dash or similar
+            assumptions.append(line.strip()[2:])
+    return assumptions
 
 
 if __name__ == "__main__":
