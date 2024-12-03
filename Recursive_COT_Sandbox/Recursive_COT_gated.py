@@ -99,6 +99,11 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
 
             steps.append(next_step)
 
+            # Check for early termination signal
+            if "NO_MORE_STEPS" in next_step.upper():
+                print(f"Early termination detected at Step {step_num + 1}: {next_step}")
+                break  # Exit the loop early
+
             # Validate the reasoning with the feedback gate
             feedback = holistic_feedback_gate(problem_description, steps)
             feedback_log.append(feedback)
@@ -115,8 +120,6 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
                 steps[-1] = next_step  # Replace the invalid step
             else:
                 print(f"Step Accepted: {next_step}")
-                if next_step.lower() in ["done", "complete", "finished", "NO_MORE_STEPS"]:
-                    break
 
         # Add the reasoning chain to the list
         reasoning_chains.append(steps)
@@ -136,6 +139,7 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
 
         global_check_prompt += (
             "Does any reasoning chain contain incorrect assumptions or deviate significantly from the problem's context? "
+            "Within the chains of thought and problem, are there any assumptions that were not explicitly stated in the problem but are necessary for a logical solution? "
             "If there are unexplored assumptions or alternative logical paths not yet tested, propose a new focus to guide a reasoning chain restart. "
             "If all relevant assumptions have been sufficiently explored, synthesize the most logical and reasonable answer from the chains provided.\n\n"
             "If a new focus is required, include 'restart with adjusted focus'. Otherwise, provide the synthesized final answer."
@@ -237,7 +241,7 @@ if __name__ == "__main__":
     )
 
     # Solve a specific problem
-    final_solution = solve_problem_holistically(problem4, max_steps=5, max_restarts=3)
+    final_solution = solve_problem_holistically(problem1, max_steps=10, max_restarts=3)
 
     print("\nFinal Answer:\n", final_solution)
 
