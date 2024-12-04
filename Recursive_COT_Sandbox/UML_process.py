@@ -1,34 +1,49 @@
 @startuml
 start
-:User provides Problem Description;
-:Initialize reasoning chain and feedback log;
 
-repeat
-:Generate Step using `generate_step`;
-:Validate step with `holistic_feedback_gate`;
-if (Feedback "Yes"?) then (Yes)
-  :Accept step;
-  :Append step to reasoning chain;
-else (No)
-  :Refine step using feedback;
-  :Regenerate step with corrections;
-endif
-if (Max steps reached or Problem Solved?) then (Yes)
-  :Pass reasoning chain to `global_consistency_check`;
-  stop
-else (No)
-  :Continue to next step;
-endif
-repeat while (max steps not reached);
+:Initialize OpenAI client with API key;
+:Define helper functions;
 
-:Global Consistency Check evaluates all chains;
-if (Flawed or Inconsistent Reasoning?) then (Yes)
-  :Identify incorrect assumptions;
-  :Restart process with new focus (new reasoning chain);
+if (Start Problem Solver?) then (Yes)
+    :Initialize problem description;
+    :Set maximum steps and restarts;
+    while (Restart allowed?) is (Yes)
+        :Start new reasoning chain;
+        :Reset steps and feedback logs;
+
+        while (Steps < max_steps?) is (Yes)
+            :Generate step using generate_step();
+            if (Step generation error or NO_MORE_STEPS?) then (Exit loop)
+                break
+            else
+                :Validate step with holistic_feedback_gate();
+                if (Feedback suggests flaws?) then (Yes)
+                    :Generate corrected step;
+                    :Replace current step;
+                else (No)
+                    :Accept current step;
+                endif
+                :Add step to reasoning chain;
+            endif
+        endwhile
+
+        :Run global consistency check;
+        if (Global check suggests restart?) then (Yes)
+            :Add identified assumptions;
+        else (No)
+            if (Final Answer Synthesized?) then (Yes)
+                :Store Final Answer;
+                break
+            else (No)
+                :Select most logical chain;
+            endif
+        endif
+    endwhile
+
+    :Output Final Answer;
 else (No)
-  :Synthesize final answer or choose most logical chain;
+    :Exit Program;
 endif
 
-:Return final solution to user;
 stop
 @enduml
