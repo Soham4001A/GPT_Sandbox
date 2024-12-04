@@ -5,7 +5,7 @@ from secret_files import OpenAI_API_KEY
 client = OpenAI(api_key=OpenAI_API_KEY)
 
 
-def query_gpt(prompt, max_tokens=500, temperature=0.7, presence_penalty= 0):
+def query_gpt(prompt, max_tokens=1500, temperature=0.7, presence_penalty= 0):
     """
     Generic function to query GPT-4o.
     """
@@ -41,9 +41,12 @@ def generate_step(problem_description, previous_steps=None):
             prompt += f"Step {i}: {step}\n"
         prompt += (
             "What is the next logical step to solve the problem based on the reasoning so far?"
+            "When reasoning about this problem, consider any environmental, contextual, or real-world factors that might influence the situation. "
+            "If you believe there are no more steps that need to be taken at all, reply with 'NO_MORE_STEPS' "
         )
     else:
-        prompt += "What is the first step to solve this problem?\n"
+        prompt += "What is the first step to solve this problem? When reasoning about this problem, consider any environmental, contextual, or real-world factors that might influence the situation."
+        
 
     return query_gpt(prompt)
 
@@ -66,76 +69,136 @@ def holistic_feedback_gate(problem_description, steps):
         "Are there any critical flaws or incorrect assumptions that would invalidate the latest reasoning so far? "
         "Do the latest reasoning and steps taken adress the problem from a natural, logical, and reasonable perspective? Consider all factors and constraints that may not have been explicitly stated in the problem but rather can be derived. "
         "Use the most realistic and logical assumptions alike a human would given the perspective of not just this problem but also all natural and logical constraints. "
+        "Do the laws of physics and the principle of natural logic apply to the reasoning step that was generated? In other words, would a human read or hear the problem and reason in this manner?"
         "If so, provide 'No' as feedback, explain the flaws, and suggest corrected steps."
         "Otherwise, provide 'Yes' and briefly justify why the reasoning is acceptable to proceed."
     )
 
-    response = query_gpt(prompt, max_tokens=900, temperature=0.85, presence_penalty=0.9)
+    response = query_gpt(prompt, max_tokens=1500, temperature=0.85, presence_penalty=0.9)
     return response
 
 
-def global_consistency_check(problem_description, steps):
+def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3):
     """
-    Validates if the reasoning aligns holistically with the problem's goal.
+    Solves a problem iteratively with step-by-step reasoning, feedback validation, and global consistency checks.
+    Allows restarts to address unexplored assumptions.
     """
-    prompt = (
-        "You are an advanced reasoning AI tasked with validating the overall reasoning process.\n"
-        f"Here is the problem:\n{problem_description}\n"
-        "Here are all the steps taken so far:\n"
-    )
-    for i, step in enumerate(steps, 1):
-        prompt += f"Step {i}: {step}\n"
-    prompt += (
-        "Does this reasoning holistically address the prompt, considering all key factors? Consider uniqueness, consistency, and completeness. Consider how a human approaches this problem and assumes constraints about the problem that may not have been implied "
-        "Does the reasoning and steps taken adress the prompt from a natural, logical, and reasonable perspective? Consider all factors and constraints that may not have been explicitly stated in the problem but rather can be derived. Assume natural laws of physics and human behavior apply in logical ways of reasoning"
-        "If not, explain the flaws and provide a corrected final answer."
-    )
+    reasoning_chains = []  # Store all reasoning chains
+    final_solution = None
+    identified_assumptions = []  # Store assumptions and alternative focuses
 
-    return query_gpt(prompt, max_tokens=1000, temperature=0.7, presence_penalty=0.5)
+    for restart_num in range(max_restarts):
+        print(f"\n--- Restart {restart_num + 1} ---")
+        steps = []  # Reset steps for this reasoning chain
+        feedback_log = []  # Track feedback for debugging
 
-
-def solve_problem_holistically(problem_description, max_steps=10):
-    """
-    Solves a problem iteratively with feedback used only for corrections.
-    """
-    steps = []
-    feedback_log = []  # To track feedback for debugging or analysis
-
-    for step_num in range(max_steps):
-        # Generate the next step
-        next_step = generate_step(problem_description, previous_steps=steps)
-
-        if not next_step or "Error" in next_step:
-            print(f"Error generating step: {next_step}")
-            break
-
-        steps.append(next_step)
-
-        # Validate reasoning using the feedback gate
-        feedback = holistic_feedback_gate(problem_description, steps)
-        feedback_log.append(feedback)
-
-        if "No" in feedback:
-            print(f"Feedback Gate Rejected Reasoning for Step {step_num + 1}:")
-            print(feedback)
-
-            # Generate a corrected step based on feedback
-            next_step = generate_step(
-                problem_description,
-                previous_steps=steps[:-1],  # Exclude the invalid last step
-            )
-            steps[-1] = next_step  # Replace the invalid step
+        # Include identified assumptions in the problem description for restarts
+        if identified_assumptions:
+            problem_with_assumptions = (
+            problem_description +
+            "\nConsider the following identified assumptions and alternative focuses:\n" +
+            "\n".join(f"- {assumption}" for assumption in identified_assumptions)
+        )
         else:
-            print(f"Step Accepted: {next_step}")
-            if next_step.lower() in ["done", "complete", "finished"]:
+            problem_with_assumptions = problem_description
+
+        # Generate reasoning chain iteratively
+        for step_num in range(max_steps):
+            # Generate the next reasoning step
+            next_step = generate_step(problem_with_assumptions, previous_steps=steps)
+
+            if not next_step or "Error" in next_step:
+                print(f"Error generating step: {next_step}")
                 break
 
-    # Perform final consistency check
-    final_check = global_consistency_check(problem_description, steps)
-    print(f"Final Consistency Check:\n{final_check}")
-    return steps
+            steps.append(next_step)
 
+            # Check for early termination signal
+            if "NO_MORE_STEPS" in next_step.upper():
+                print(f"Early termination detected at Step {step_num + 1}: {next_step}")
+                break  # Exit the loop early
 
+            # Validate the reasoning with the feedback gate
+            feedback = holistic_feedback_gate(problem_with_assumptions, steps)
+            feedback_log.append(feedback)
+
+            if "No" in feedback:
+                print(f"Feedback Gate Rejected Reasoning for Step {step_num + 1}:")
+                print(feedback)
+
+                # Correct the step based on feedback
+                next_step = generate_step(
+                    problem_with_assumptions,
+                    previous_steps=steps[:-1],  # Exclude the invalid last step
+                )
+                steps[-1] = next_step  # Replace the invalid step
+            else:
+                print(f"Step Accepted: {next_step}")
+
+        # Add the reasoning chain to the list
+        reasoning_chains.append(steps)
+
+        # Perform global consistency check
+        global_check_prompt = (
+            "You are an advanced reasoning AI tasked with validating multiple reasoning chains "
+            "to holistically address a problem. Analyze all the chains below for assumptions, flaws, or inconsistencies.\n\n"
+            f"Problem Description:\n{problem_with_assumptions}\n\n"
+            "Here are the reasoning chains generated so far:\n"
+        )
+        for chain_num, chain in enumerate(reasoning_chains, 1):
+            global_check_prompt += f"Reasoning Chain {chain_num}:\n"
+            for i, step in enumerate(chain, 1):
+                global_check_prompt += f"  Step {i}: {step}\n"
+            global_check_prompt += "\n"
+
+        global_check_prompt += (
+            "Does any reasoning chain contain incorrect assumptions or deviate significantly from the problem's context? "
+            "Within the chains of thought and problem, are there any assumptions that were not explicitly stated in the problem but are necessary for a logical solution? "
+            "If there are unexplored assumptions or alternative logical paths not yet tested, propose a new focus to guide a reasoning chain restart. "
+            "If all relevant assumptions have been sufficiently explored, synthesize the most logical and reasonable answer from the chains provided.\n\n"
+            "If any assumptions are identified, include 'restart with adjusted focus' and suggest those assumptions."
+        )
+
+        global_check_result = query_gpt(global_check_prompt, max_tokens=1500, temperature=0.8, presence_penalty=0.5)
+
+        print(f"\nGlobal Consistency Check Result:\n{global_check_result}")
+
+        # Parse global check result for restart or final answer
+        if "restart with adjusted focus" in global_check_result.lower():
+            print("Global Consistency Check suggested restarting with a new focus.")
+            identified_assumptions.append(global_check_result.split("restart with adjusted focus: ")[-1])
+            continue
+
+        elif "synthesized final answer" in global_check_result.lower():
+            print("Global Consistency Check synthesized a final answer.")
+            final_solution = global_check_result
+            break
+
+    # If no final solution is synthesized, select the most logical chain
+    if not final_solution:
+        print("Global Consistency Check did not explicitly synthesize a final answer. Selecting the most logical chain.")
+        select_prompt = (
+            "You are an advanced reasoning AI tasked with selecting the most logical and reasonable reasoning chain "
+            "from the options below. Analyze each chain for completeness, context alignment, and assumptions. Choose the chain "
+            "that provides the most realistic solution to the problem described.\n\n"
+            f"Problem Description:\n{problem_with_assumptions}\n\n"
+            "Here are the reasoning chains generated so far:\n"
+        )
+        for chain_num, chain in enumerate(reasoning_chains, 1):
+            select_prompt += f"Reasoning Chain {chain_num}:\n"
+            for i, step in enumerate(chain, 1):
+                select_prompt += f"  Step {i}: {step}\n"
+            select_prompt += "\n"
+
+        select_prompt += "Based on your analysis, select and summarize the most logical and reasonable chain as the final solution."
+
+        final_solution = query_gpt(select_prompt, max_tokens=1500, temperature=0.7, presence_penalty=0.5)
+
+    # Output the final solution
+    print("\nFinal Solution:")
+    print(final_solution)
+
+    return final_solution
 
 if __name__ == "__main__":
     # Define problems
@@ -185,7 +248,21 @@ if __name__ == "__main__":
     )
 
     problem9 = (
-        "You are an expert at reasoning and you always pick the most realistic answer. Think step by step and output your reasoning followed by your final answer using the following format: Final Answer: X where X is one of the letters A, B, C, D, E, or F.\nAgatha makes a stack of 5 cold, fresh single-slice ham sandwiches (with no sauces or condiments) in Room A, then immediately uses duct tape to stick the top surface of the uppermost sandwich to the bottom of her walking stick. She then walks to Room B, with her walking stick, so how many whole sandwiches are there now, in each room?\nA. 4 whole sandwiches in room A, 0 whole sandwiches in Room B\nB. no sandwiches anywhere\nC. 4 whole sandwiches in room B, 1 whole sandwich in Room A\nD. All 5 whole sandwiches in Room B\nE. 4 whole sandwiches in Room B, 1 whole sandwiches in room A\nF. All 5 whole sandwiches in Room A\n",
+    "Agatha makes a stack of 5 cold, fresh single-slice ham sandwiches (with no sauces or condiments) in Room A, "
+    "then immediately uses duct tape to stick the top surface of the uppermost sandwich to the bottom of her walking stick. "
+    "She then walks to Room B, with her walking stick, so how many whole sandwiches are there now, in each room?\n"
+    "A. 4 whole sandwiches in room A, 0 whole sandwiches in Room B\n"
+    "B. no sandwiches anywhere\n"
+    "C. 4 whole sandwiches in room B, 1 whole sandwich in Room A\n"
+    "D. All 5 whole sandwiches in Room B\n"
+    "E. 4 whole sandwiches in Room B, 1 whole sandwiches in room A\n"
+    "F. All 5 whole sandwiches in Room A\n"
+    )
+
+    problem9a = (
+    "Agatha makes a stack of 5 cold, fresh single-slice ham sandwiches (with no sauces or condiments) in Room A, "
+    "then immediately uses duct tape to stick the top surface of the uppermost sandwich to the bottom of her walking stick. "
+    "She then walks to Room B, with her walking stick, so how many whole sandwiches are there now, in each room?\n"
     )
 
     problem10 = (
@@ -193,12 +270,10 @@ if __name__ == "__main__":
     )
 
     # Solve a specific problem
-    steps = solve_problem_holistically(problem10,max_steps=10)
+    final_solution = solve_problem_holistically(problem7, max_steps=10, max_restarts=3)
 
-    with open("Recursive_COT_Gated_steps.txt", "w") as f:
-        for i, step in enumerate(steps, 1):
-            f.write(f"Step {i}: {step}\n")
-        
+    print("\nFinal Answer:\n", final_solution)
+
     
     """
     
