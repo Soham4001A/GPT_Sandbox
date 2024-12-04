@@ -56,7 +56,11 @@ def holistic_feedback_gate(problem_description, steps):
     """
     Provides feedback and validates the reasoning process.
     """
+    if not steps:
+        return "Error: No steps provided for validation."
+
     steps_text = "\n".join(f"Step {i}: {step}" for i, step in enumerate(steps, 1))
+    latest_step_index = len(steps)
     latest_step = steps[-1] if steps else ""
 
     prompt = (
@@ -65,7 +69,7 @@ def holistic_feedback_gate(problem_description, steps):
         "Be specific in your evaluation.\n\n"
         f"Problem:\n{problem_description}\n\n"
         f"Steps so far:\n{steps_text}\n\n"
-        "Evaluate the latest step (Step {}):\n".format(len(steps))
+        f"Evaluate the latest step (Step {latest_step_index}):\n"
         f"{latest_step}\n\n"
         "1. Does the latest step logically follow from the previous steps?\n"
         "2. Are there any critical flaws or incorrect assumptions in the latest step?\n"
@@ -75,8 +79,13 @@ def holistic_feedback_gate(problem_description, steps):
         "If the step is acceptable, provide 'Yes' and briefly justify why it is acceptable to proceed."
     )
 
-    response = query_gpt(prompt, max_tokens=1500, temperature=0.7, presence_penalty=0.5)
-    return response
+    try:
+        response = query_gpt(prompt, max_tokens=1500, temperature=0.7, presence_penalty=0.5)
+        if not response:
+            return "Error: Received an empty response from GPT."
+        return response
+    except Exception as e:
+        return f"Error: {e}"
 
 def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3):
     """
@@ -96,7 +105,7 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
         if identified_assumptions:
             problem_with_assumptions = (
                 problem_description +
-                "\n\nConsider the following identified assumptions and alternative focuses:\n" +
+                "\n\nConsider the following identified assumptions and focus on what would happen if we did not assume them specifically for this problem:\n" +
                 "\n".join(f"- {assumption}" for assumption in identified_assumptions)
             )
         else:
@@ -293,7 +302,7 @@ if __name__ == "__main__":
     )
 
     # Solve a specific problem
-    final_solution = solve_problem_holistically(problem7, max_steps=10, max_restarts=3)
+    final_solution = solve_problem_holistically(problem1, max_steps=10, max_restarts=5)
 
     print("\nFinal Answer:\n", final_solution)
 
