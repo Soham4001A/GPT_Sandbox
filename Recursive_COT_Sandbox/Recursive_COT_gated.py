@@ -196,6 +196,13 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
             assumption_text = global_check_result.split("Restart with adjusted focus:")[-1].strip()
             identified_assumptions.append(assumption_text)
             continue
+        elif "Proposed New Focus" in global_check_result:
+            print("Global Consistency Check proposed a new focus. Triggering a restart.")
+            # Extract proposed focus and add it to identified assumptions
+            focus_start = global_check_result.find("Proposed New Focus:")
+            proposed_focus = global_check_result[focus_start:].split("\n")[1].strip()
+            identified_assumptions.append(proposed_focus)
+            continue
         elif "Final Answer:" in global_check_result:
             print("Global Consistency Check synthesized a final answer.")
             final_solution = global_check_result
@@ -302,7 +309,7 @@ if __name__ == "__main__":
     )
 
     # Solve a specific problem
-    final_solution = solve_problem_holistically(problem1, max_steps=10, max_restarts=5)
+    final_solution = solve_problem_holistically(problem2, max_steps=10, max_restarts=5)
 
     print("\nFinal Answer:\n", final_solution)
 
