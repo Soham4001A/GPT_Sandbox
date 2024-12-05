@@ -286,7 +286,13 @@ if __name__ == "__main__":
     )
 
     problem5 = (
-        "You are an expert at reasoning and you always pick the most realistic answer. Think step by step and output your reasoning followed by your final answer using the following format: Final Answer: X where X is one of the letters A, B, C, D, E, or F.\nPeter needs CPR from his best friend Paul, the only person around. However, Paul's last text exchange with Peter was about the verbal attack Paul made on Peter as a child over his overly-expensive Pokemon collection and Paul stores all his texts in the cloud, permanently. Paul will [ _ ] help Peter.\nA. probably not\nB. definitely\nC. half-heartedly\nD. not\nE. pretend to\nF. ponder deeply over whether to\n",
+    "You are an expert at reasoning and you always pick the most realistic answer. "
+    "Think step by step and output your reasoning followed by your final answer using the following format: "
+    "Final Answer: X where X is one of the letters A, B, C, D, E, or F.\n"
+    "Peter needs CPR from his best friend Paul, the only person around. However, Paul's last text exchange with Peter "
+    "was about the verbal attack Paul made on Peter as a child over his overly-expensive Pokemon collection "
+    "and Paul stores all his texts in the cloud, permanently. Paul will [ _ ] help Peter.\n"
+    "A. probably not\nB. definitely\nC. half-heartedly\nD. not\nE. pretend to\nF. ponder deeply over whether to\n"
     )
 
     problem6 = (
@@ -324,7 +330,7 @@ if __name__ == "__main__":
     )
 
     # Solve a specific problem
-    final_solution = solve_problem_holistically(problem2, max_steps=10, max_restarts=5)
+    final_solution = solve_problem_holistically(problem5, max_steps=10, max_restarts=5)
     
     """
     
