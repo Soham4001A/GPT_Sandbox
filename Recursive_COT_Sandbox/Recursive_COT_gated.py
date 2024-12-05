@@ -102,15 +102,29 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
         feedback_log = []  # Track feedback for debugging
 
         # Include identified assumptions in the problem description for restarts
+        # Include identified assumptions in the problem description for restarts
         if identified_assumptions:
+            assumptions_to_explore = []
+            for assumption in identified_assumptions:
+                if assumption.startswith("Inverse of:"):
+                    assumptions_to_explore.append(assumption)  # Prioritize inverse assumptions
+                else:
+                    inverse_assumption = f"Inverse of: {assumption}"  # Generate inverse
+                    assumptions_to_explore.append(inverse_assumption)
+
             problem_with_assumptions = (
                 problem_description +
-                "\n\nConsider the following identified assumptions and focus on what would happen if we did not assume them specifically for this problem:\n" +
-                "\n".join(f"- {assumption}" for assumption in identified_assumptions)
+                "\n\nConsider the following identified assumptions and their inverses:\n" +
+                "\n".join(f"- {assumption}" for assumption in assumptions_to_explore)
             )
         else:
             problem_with_assumptions = problem_description
 
+        #    # Ensure all assumptions and their inverses are explored before synthesizing
+        #if any(assumption not in reasoning_chains for assumption in identified_assumptions):
+        #    print("Not all assumptions and their inverses have been explored. Restarting.")
+        #    continue
+        
         # Generate reasoning chain iteratively
         for step_num in range(max_steps):
             # Generate the next reasoning step
@@ -180,21 +194,22 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
             "1. Identify any incorrect assumptions or deviations from the problem's context.\n"
             "2. Highlight any assumptions that were not explicitly stated but are necessary for a logical solution.\n"
             "3. Compare the reasoning chains and note any discrepancies.\n\n"
-            "If there are unexplored assumptions or alternative logical paths not yet tested, propose a new focus to guide a reasoning chain restart.\n"
+            "If there are unexplored assumptions or alternative logical paths not yet tested, propose a new focus starting with 'Proposed New Focus' followed by the focuses to guide a reasoning chain restart.\n"
             "If all relevant assumptions have been sufficiently explored, synthesize the most logical and reasonable answer from the chains provided.\n\n"
-            "If any assumptions are identified, include 'Restart with adjusted focus:' followed by the suggested assumptions.\n"
+            "If any assumptions are identified, include specifically 'Restart with adjusted focus:' followed by the suggested assumptions.\n"
             "If a final answer is synthesized, include 'Final Answer:' followed by your conclusion."
-        )
+        )   
 
         global_check_result = query_gpt(global_check_prompt, max_tokens=1500, temperature=0.7, presence_penalty=0.5)
 
         print(f"\nGlobal Consistency Check Result:\n{global_check_result}")
 
         # Parse global check result for restart or final answer
-        if "Restart with adjusted focus:" in global_check_result:
+        if "Restart with Adjusted Focus:" in global_check_result:
             print("Global Consistency Check suggested restarting with a new focus.")
             assumption_text = global_check_result.split("Restart with adjusted focus:")[-1].strip()
             identified_assumptions.append(assumption_text)
+            identified_assumptions.append(f"Inverse of: {assumption_text}")  # Add inverse for exploration
             continue
         elif "Proposed New Focus" in global_check_result:
             print("Global Consistency Check proposed a new focus. Triggering a restart.")
@@ -310,9 +325,6 @@ if __name__ == "__main__":
 
     # Solve a specific problem
     final_solution = solve_problem_holistically(problem2, max_steps=10, max_restarts=5)
-
-    print("\nFinal Answer:\n", final_solution)
-
     
     """
     
@@ -326,7 +338,7 @@ if __name__ == "__main__":
     6. 0/1
     7. 0/1
     8. 1/1
-    9. 0.5/1 --> Incorrect but suggested correct answer if it was given more information about integrity
+    9. 1/1 
     10. 0/1
     
     
