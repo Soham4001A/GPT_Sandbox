@@ -3,15 +3,24 @@ from openai import OpenAI
 from secret_files import OpenAI_API_KEY
 
 client = OpenAI(api_key=OpenAI_API_KEY)
+# Define a global system message at the start of your script or inside query_gpt
+
+
+SYSTEM_MESSAGE = (
+    "You are an advanced reasoning AI. Your role is to solve problems step-by-step "
+    "with clear logic, considering real-world constraints and physics. Always verify "
+    "each step is realistic, logically consistent, and consider previously accepted steps. "
+    "If a conclusion seems unrealistic, adjust it before finalizing."
+)
 
 def query_gpt(prompt, max_tokens=1500, temperature=0.7, presence_penalty=0):
-    """
-    Generic function to query the GPT model.
-    """
     try:
         response = client.chat.completions.create(
             model="gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": SYSTEM_MESSAGE},  # Added system message
+                {"role": "user", "content": prompt}
+            ],
             max_tokens=max_tokens,
             temperature=temperature,
             presence_penalty=presence_penalty
@@ -28,26 +37,24 @@ def generate_step(problem_description, previous_steps=None):
     Uses GPT to produce a step-by-step solution chain.
     """
     if previous_steps:
-        # Combine previous steps into a formatted string
         steps_text = "\n".join(f"Step {i}: {step}" for i, step in enumerate(previous_steps, 1))
         prompt = (
-            "You are an advanced reasoning AI. Your task is to solve problems step-by-step in a clear and logical manner. "
-            "Each step should build upon the previous ones, using chain-of-thought reasoning. "
-            "Consider timing, sequence, assumptions, and constraints in the real world.\n\n"
+            "You are an advanced reasoning AI. Each new step must build on previous steps logically and realistically.\n\n"
             f"Problem:\n{problem_description}\n\n"
             f"Steps so far:\n{steps_text}\n\n"
-            "Based on the reasoning so far, what is the next logical step to solve the problem? "
-            "Consider any environmental, contextual, or real-world factors that might influence the situation. "
-            "If you believe there are no more steps needed, reply with 'NO_MORE_STEPS'.\n\n"
-            "Provide your answer as 'Step X: [Your reasoning here]'."
+            "Before giving the next step:\n"
+            "- Check if your proposed next step respects real-world physics and practicality.\n"
+            "- If previous logic or assumptions are flawed, correct them.\n\n"
+            "Based on the reasoning so far, what is the next logical step? "
+            "If no more steps are needed, reply with 'NO_MORE_STEPS'.\n\n"
+            "Provide answer as 'Step X: [Your reasoning here]'."
         )
     else:
         prompt = (
-            "You are an advanced reasoning AI. Your task is to solve problems step-by-step in a clear and logical manner. "
-            "Use chain-of-thought reasoning to consider timing, sequence, assumptions, and constraints.\n\n"
+            "You are an advanced reasoning AI. Start by considering real-world factors and logical consistency.\n\n"
             f"Problem:\n{problem_description}\n\n"
             "What is the first logical step to solve this problem? "
-            "Consider any environmental, contextual, or real-world factors that might influence the situation.\n\n"
+            "Remember: be practical, realistic, and logical.\n\n"
             "Provide your answer as 'Step 1: [Your reasoning here]'."
         )
 
@@ -71,21 +78,18 @@ def holistic_feedback_gate(problem_description, steps, restart_instructions=None
     )
 
     prompt = (
-        "You are an advanced reasoning AI tasked with validating a step-by-step reasoning process. "
-        "Your goal is to ensure the latest reasoning step aligns with the problem's logic and context. "
-        "Be specific in your evaluation.\n\n"
+        "You are an advanced reasoning AI tasked with validating the latest reasoning step.\n"
+        "Check the following:\n"
+        "1. Does this step logically follow from previous steps?\n"
+        "2. Are there incorrect assumptions or logical flaws?\n"
+        "3. Does it address the problem realistically (considering real-world physics and context)?\n"
+        "4. Does it align with any restart instructions (if provided)?\n\n"
         f"Problem:\n{problem_description}\n\n"
         f"Steps so far:\n{steps_text}\n\n"
-        f"Evaluate the latest step (Step {latest_step_index}):\n"
-        f"{latest_step}\n"
+        f"Latest Step (Step {latest_step_index}):\n{latest_step}\n"
         f"{restart_context}\n\n"
-        "1. Does the latest step logically follow from the previous steps and restart instructions?\n"
-        "2. Are there any critical flaws or incorrect assumptions in the latest step?\n"
-        "3. Does it address the problem from a natural, logical, and reasonable perspective?\n"
-        "4. Do the laws of physics and principles of natural logic apply to this step?\n"
-        "5. Does this step logically flow with the restart instructions (if provided)\n\n"
-        "If there are flaws, provide 'No' as feedback, list the flaws, and suggest a corrected step.\n"
-        "If the step is acceptable, provide 'Yes' and briefly justify why it is acceptable to proceed."
+        "If flawed, respond 'No', list flaws, and propose a corrected step.\n"
+        "If acceptable, respond 'Yes' and briefly justify correctness."
     )
 
     try:
@@ -95,6 +99,12 @@ def holistic_feedback_gate(problem_description, steps, restart_instructions=None
         return response
     except Exception as e:
         return f"Error: {e}"
+
+def extract_output(reasoning):
+    # Example: Parse or calculate the output from the reasoning
+    if "Output:" in reasoning:
+        return reasoning.split("Output:")[-1].strip()
+    return "No explicit output found"
 
 def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3):
     """
@@ -126,77 +136,136 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
 
         # Generate reasoning steps up to max_steps or until no more steps
         for step_num in range(max_steps):
-            next_step = generate_step(problem_with_assumptions, previous_steps=steps)
+            # Generate the next step reasoning based on previous steps
+            next_step_reasoning = generate_step(
+                problem_with_assumptions,
+                previous_steps=[step['reasoning'] for step in steps]
+            )
 
-            # Check if there's an error generating a step
-            if not next_step or "Error" in next_step:
-                print(f"[Error] Unable to generate step: {next_step}")
+            # Check if step generation failed
+            if not next_step_reasoning or "Error" in next_step_reasoning:
+                print(f"[Error] Unable to generate step: {next_step_reasoning}")
+                break  # Exit the loop if step generation fails
+
+            # Extract the output of the reasoning step
+            next_step_output = extract_output(next_step_reasoning)
+
+            # Append the reasoning and its output to the steps list
+            steps.append({
+                "reasoning": next_step_reasoning.strip(),
+                "output": next_step_output
+            })
+
+            # Check for early termination signal in the reasoning
+            if "NO_MORE_STEPS" in next_step_reasoning.upper():
+                print(f"[Termination] Early termination at Step {step_num + 1}: {next_step_reasoning}")
                 break
 
-            step_content = next_step.strip()
+            # Log the generated step
+            print(f"[Generated Step {step_num + 1}] {next_step_reasoning}\n")
 
-            # Check for early termination
-            if "NO_MORE_STEPS" in step_content.upper():
-                print(f"[Termination] Early termination at Step {step_num + 1}: {step_content}")
-                break
-
-            steps.append(step_content)
-            print(f"[Generated Step {step_num + 1}] {step_content}\n")
-
-            # Validate the reasoning of the current step
-            feedback = holistic_feedback_gate(problem_with_assumptions, steps, identified_assumptions)
+            # Validate the current step using the holistic feedback gate
+            feedback = holistic_feedback_gate(
+                problem_with_assumptions,
+                [step["reasoning"] for step in steps],
+                identified_assumptions
+            )
             feedback_log.append(feedback)
 
+            # Process feedback from the holistic feedback gate
             if feedback.startswith("No"):
-                # If feedback rejects the step, correct it based on suggestions
+                # If feedback rejects the step, request a correction
                 print(f"[Feedback] Step {step_num + 1} Rejected:\n{feedback}\n")
 
                 correction_prompt = (
                     "Based on the feedback provided, revise the latest step to correct any flaws or incorrect assumptions.\n\n"
                     f"Problem:\n{problem_with_assumptions}\n\n"
-                    f"Previous Steps:\n{'\n'.join(steps[:-1])}\n\n"
+                    f"Previous Steps:\n{'\n'.join(step['reasoning'] for step in steps[:-1])}\n\n"
                     f"Feedback:\n{feedback}\n\n"
                     f"Provide the corrected step as 'Step {step_num + 1}: [Your revised reasoning here]'."
                 )
 
-                corrected_step = query_gpt(correction_prompt, max_tokens=500, temperature=0.7, presence_penalty=0.5)
+                corrected_step = query_gpt(
+                    correction_prompt,
+                    max_tokens=500,
+                    temperature=0.7,
+                    presence_penalty=0.5
+                )
 
+                # Check if correction generation failed
                 if not corrected_step or "Error" in corrected_step:
                     print(f"[Error] Unable to generate corrected step: {corrected_step}\n")
                     break
 
-                steps[-1] = corrected_step.strip()
-                print(f"[Corrected Step {step_num + 1}] {steps[-1]}\n")
+                # Update the last step with the corrected reasoning
+                steps[-1]["reasoning"] = corrected_step.strip()
+                print(f"[Corrected Step {step_num + 1}] {steps[-1]['reasoning']}\n")
             else:
+                # Accept the step and proceed to the next iteration
                 print(f"[Feedback] Step {step_num + 1} Accepted.\n")
 
         # Add the generated chain of reasoning steps to the list
-        reasoning_chains.append(steps)
+        reasoning_chains.append([{"reasoning": step["reasoning"], "output": step["output"]} for step in steps])
         
         # Perform a global consistency check across all generated chains
         global_check_prompt += (
-            "You are an advanced reasoning AI tasked with identifying assumptions and logical gaps in reasoning. "
-            "Your goal is to suggest how the reasoning chain can be improved by adding relevant assumptions or addressing overlooked ones.\n\n"
+            "You are an advanced reasoning AI, performing a final global consistency check.\n"
+            "Consider:\n"
+            "- Are there overlooked assumptions that, if clarified, would yield a more realistic solution?\n"
+            "- Is there a simpler, more direct line of reasoning?\n"
+            "- Avoid adding irrelevant assumptions; only suggest what genuinely helps realism and logic.\n\n"
             f"Problem Description:\n{problem_with_assumptions}\n\n"
             "Reasoning Chains:\n"
         )
+
         for chain_num, chain in enumerate(reasoning_chains, 1):
             global_check_prompt += f"Reasoning Chain {chain_num}:\n"
-            for step in chain:
-                global_check_prompt += f"{step}\n"
+            for step_num, step in enumerate(chain, 1):
+                global_check_prompt += f"Step {step_num}: {step['reasoning']}\n"
+                global_check_prompt += f"Step {step_num} Output: {step['output']}\n"
             global_check_prompt += "\n"
 
         global_check_prompt += (
             "Instructions:\n"
-            "1. Identify any key assumptions in the reasoning chains or even possible deviations that could alter the final result. Are there any different routes or reasoning we could have used to reach a different answer from a logical perspective in a real world scenario? List them clearly under the keyword 'Identified Assumptions:'.\n"
-            "2. Provide explicit instructions for how to restart the reasoning chain, incorporating these assumptions or even these inverses if they present a different reasoning path from the very first step. "
-            "List these instructions under the keyword 'Restart Instructions:'.\n\n"
-            "If you find no additional assumptions or instructions are needed, reply with 'NO_ADDITIONAL_ASSUMPTIONS'."
+            "1. For each reasoning chain, validate that:\n"
+            "   - The reasoning for each step is logically consistent.\n"
+            "   - The output of each step aligns with the reasoning and problem constraints.\n"
+            "   - There are no contradictions between reasoning and outputs across steps.\n"
+            "2. Assign a score from 1 to 10 to each chain based on the following criteria:\n"
+            "   - Clarity and detail in reasoning (1-4 points).\n"
+            "   - Logical consistency with problem constraints (1-4 points).\n"
+            "   - Realistic alignment between outputs and reasoning (1-2 points).\n"
+            "3. If flaws or incorrect assumptions are found, provide 'Restart Instructions' and suggest how the reasoning chain should be adjusted.\n"
+            "4. If no restarts are needed, state 'NO_ADDITIONAL_ASSUMPTIONS'.\n\n"
+            "Output your results in the following format:\n"
+            "- Chain 1: [Score] - [Justification]\n"
+            "- Chain 2: [Score] - [Justification]\n"
+            "- Selected Chain (This should be the highest scored chain): [Reasoning Chain X],\n"
+            "- Restart Instructions (if any):\n[Your suggestions here]\n"
+            "- Final Answer: [Conclusion based on the selected chain]."
         )
 
         global_check_result = query_gpt(global_check_prompt, max_tokens=1500, temperature=0.9, presence_penalty=0.5)
         print("[Global Consistency Check Result]\n")
         print(global_check_result, "\n")
+
+        # Extract the selected chain and final answer from the response
+        selected_chain = None
+        final_answer = None
+
+        if "Selected Chain:" in global_check_result:
+            selected_chain_start = global_check_result.find("Selected Chain:")
+            selected_chain = global_check_result[selected_chain_start:].split("\n")[0].strip()
+
+        if "Final Answer:" in global_check_result:
+            final_answer_start = global_check_result.find("Final Answer:")
+            final_answer = global_check_result[final_answer_start:].split("\n")[0].strip()
+
+        if selected_chain and final_answer:
+            print(f"[Action] Selected {selected_chain}\n")
+            print(f"[Final Solution]: {final_answer}\n")
+        else:
+            print("[Action] No explicit selection or final answer was found. Reviewing the output manually.\n")
 
         # Decide next action based on the global check
         if "Restart Instructions:" in global_check_result:
@@ -207,8 +276,9 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
 
             # Extract restart instructions
             restart_instructions_start = global_check_result.find("Restart Instructions:")
-            new_assumptions = global_check_result[restart_instructions_start:].strip()
-            
+            new_assumptions = global_check_result[restart_instructions_start:].strip().split("\n")
+            for assumption in new_assumptions:
+                identified_assumptions.append(assumption.strip())
             # Append the new assumptions
             identified_assumptions.append(new_assumptions)
             continue  # Restart the reasoning chain
@@ -237,8 +307,14 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
             select_prompt += "\n"
 
         select_prompt += (
-            "Based on your analysis, select the most logical and reasonable chain as the final solution.\n"
-            "Provide 'Final Answer:' followed by your conclusion."
+            "Now, carefully choose the reasoning chain with the highest score based on the following criteria:\n"
+            "- Clarity and detail in reasoning (1-4 points).\n"
+            "- Logical consistency with problem constraints (1-4 points).\n"
+            "- Realistic assumptions and estimates (1-2 points).\n"
+            "If two chains have the same score, prioritize simplicity and realism.\n\n"
+            "Output the selected chain, scores, and final answer in this format:\n"
+            "- Selected Chain: [Reasoning Chain X]\n"
+            "- Final Answer: [Your conclusion based on the selected chain]."
         )
 
         final_solution = query_gpt(select_prompt, max_tokens=1500, temperature=0.7, presence_penalty=0.5)
@@ -353,21 +429,4 @@ if __name__ == "__main__":
     )
 
     # Example problem solution (no changes to functionality)
-    final_solution = solve_problem_holistically(problem1, max_steps=10, max_restarts=5)
-
-"""
-    
-    Open Sample Set Scores & Findings Per Question-
-
-    1. 
-    2. 
-    3. 
-    4. 
-    5. 
-    6. 
-    7. 
-    8. 
-    9.  
-    10. 
-    
-"""
+    final_solution = solve_problem_holistically(problem3, max_steps=10, max_restarts=5)

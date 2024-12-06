@@ -1,0 +1,65 @@
+@startuml
+start
+
+:Initialize global variables;
+:Load problem description and assumptions;
+
+repeat while max_restarts is not exceeded
+    :Restart reasoning process (restart loop);
+    :Initialize steps and feedback log;
+    if (identified assumptions exist?) then (yes)
+        :Incorporate assumptions into the problem description;
+    else (no)
+        :Use original problem description;
+    endif
+
+    repeat while max_steps is not exceeded
+        :Generate next reasoning step;
+        if (step generation fails?) then (yes)
+            :Log error and exit loop;
+            break
+        else (no)
+            :Extract step output;
+            :Append step reasoning and output to steps list;
+        endif
+
+        if (step signals termination?) then (yes)
+            :Log early termination and exit step loop;
+            break
+        else (no)
+            :Validate step with holistic feedback gate;
+            if (feedback rejects step?) then (yes)
+                :Request corrected step from GPT;
+                if (correction fails?) then (yes)
+                    :Log error and exit loop;
+                    break
+                else (no)
+                    :Update reasoning with corrected step;
+                endif
+            else (no)
+                :Accept step and proceed;
+            endif
+        endif
+    repeat endwhile
+
+    :Add generated reasoning chain to list;
+    :Perform global consistency check;
+
+    if (restart instructions are provided?) then (yes)
+        :Extract and update assumptions for restart;
+        continue restart loop;
+    else (no)
+        :Check if no additional assumptions are needed;
+        if (no additional assumptions?) then (yes)
+            :Finalize solution;
+            break restart loop;
+        else (no)
+            :Select most logical chain and finalize answer;
+            break restart loop;
+        endif
+    endif
+repeat endwhile
+
+:Return final solution;
+end
+@enduml
