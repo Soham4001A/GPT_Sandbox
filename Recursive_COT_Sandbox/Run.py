@@ -82,7 +82,8 @@ def holistic_feedback_gate(problem_description, steps, restart_instructions=None
         "1. Does the latest step logically follow from the previous steps and restart instructions?\n"
         "2. Are there any critical flaws or incorrect assumptions in the latest step?\n"
         "3. Does it address the problem from a natural, logical, and reasonable perspective?\n"
-        "4. Do the laws of physics and principles of natural logic apply to this step?\n\n"
+        "4. Do the laws of physics and principles of natural logic apply to this step?\n"
+        "5. Does this step logically flow with the restart instructions (if provided)\n\n"
         "If there are flaws, provide 'No' as feedback, list the flaws, and suggest a corrected step.\n"
         "If the step is acceptable, provide 'Yes' and briefly justify why it is acceptable to proceed."
     )
