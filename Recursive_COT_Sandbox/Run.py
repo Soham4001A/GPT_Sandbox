@@ -7,9 +7,9 @@ client = OpenAI(api_key=OpenAI_API_KEY)
 
 
 SYSTEM_MESSAGE = (
-    "You are an advanced reasoning AI. Your role is to solve problems step-by-step "
-    "with clear logic, considering real-world constraints and physics. Always verify "
-    "each step is realistic, logically consistent, and consider previously accepted steps. "
+    "You are an advanced reasoning AI. Your role is to solve problems "
+    "with clear logic, considering real-world constraints such physics and human behavior. Always verify "
+    "each output is realistic, logically consistent, timely, and consider previously inputs. "
     "If a conclusion seems unrealistic, adjust it before finalizing."
 )
 
@@ -213,6 +213,7 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
             "Consider:\n"
             "- Are there overlooked assumptions that, if clarified, would yield a more realistic solution?\n"
             "- Is there a simpler, more direct line of reasoning?\n"
+            "- What kind of assumptions and actions would a human take in using their 5 senses in this situation?\n"
             "- Avoid adding irrelevant assumptions; only suggest what genuinely helps realism and logic.\n\n"
             f"Problem Description:\n{problem_with_assumptions}\n\n"
             "Reasoning Chains:\n"
@@ -235,12 +236,14 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
             "   - Clarity and detail in reasoning (1-4 points).\n"
             "   - Logical consistency with problem constraints (1-4 points).\n"
             "   - Realistic alignment between outputs and reasoning (1-2 points).\n"
-            "3. If flaws or incorrect assumptions are found, provide 'Restart Instructions' and suggest how the reasoning chain should be adjusted.\n"
-            "4. If no restarts or assumptions are needed, clearly state 'NO_ADDITIONAL_ASSUMPTIONS'.\n\n"
+            "3. If there is no reasoning chain that scores above an 8, then derive other possible solutions from the situation and context."
+            "   If flaws or incorrect assumptions are found, clearly state 'Restart Instructions' and suggest how the reasoning chain should be adjusted.\n"
+            "4. However, ONLY if no restarts or assumptions are needed, clearly state 'NO_ADDITIONAL_ASSUMPTIONS' and do not print 'Restart Instructions'.\n\n"
+            "5. If you believe one chain disproves or invalidates another chain, then do not choose that chain as your final answer even if it has the highest score\n"
             "Output your results in the following format:\n"
             "- Chain 1: [Score] - [Justification]\n"
             "- Chain 2: [Score] - [Justification]\n"
-            "- Selected Chain (This should be the highest scored chain): [Reasoning Chain X],\n"
+            "- Selected Chain (This should be the highest scored chain unless disproven): [Reasoning Chain X],\n"
             "- Restart Instructions (if any):\n[Your suggestions here]\n"
             "- Final Answer: [Conclusion based on the selected chain]."
         )
@@ -249,49 +252,47 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
         print("[Global Consistency Check Result]\n")
         print(global_check_result, "\n")
 
-        # Extract the selected chain and final answer from the response
-        selected_chain = None
-        final_answer = None
-
-        if "Selected Chain:" in global_check_result:
-            selected_chain_start = global_check_result.find("Selected Chain:")
-            selected_chain = global_check_result[selected_chain_start:].split("\n")[0].strip()
-
-        if "Final Answer:" in global_check_result:
-            final_answer_start = global_check_result.find("Final Answer:")
-            final_answer = global_check_result[final_answer_start:].split("\n")[0].strip()
-
-        if selected_chain and final_answer:
-            print(f"[Action] Selected {selected_chain}\n")
-            print(f"[Final Solution]: {final_answer}\n")
-        else:
-            print("[Action] No explicit selection or final answer was found. Reviewing the output manually.\n")
-
         # Decide next action based on the global check
+        # Process the global check result
+
+        # NOTE: This should be replace with a more robust parsing logic and better global check prompting
+        # For now, we will manually force restarts :D
+
+        #if "NO_ADDITIONAL_ASSUMPTIONS" in global_check_result:
+        #    print("[Action] No additional assumptions needed. Proceeding with existing reasoning chains.\n")
+        #    break
+
         if "Restart Instructions:" in global_check_result:
             print("[Action] Restart suggested with new instructions.\n")
-            
-            # Clear the list of assumptions before adding new ones
             identified_assumptions.clear()
-
-            # Extract restart instructions
             restart_instructions_start = global_check_result.find("Restart Instructions:")
             new_assumptions = global_check_result[restart_instructions_start:].strip().split("\n")
             for assumption in new_assumptions:
                 identified_assumptions.append(assumption.strip())
-            # Append the new assumptions
-            identified_assumptions.append(new_assumptions)
             continue  # Restart the reasoning chain
 
-        elif "NO_ADDITIONAL_ASSUMPTIONS" in global_check_result:
-            print("[Action] No additional assumptions needed. Proceeding with existing reasoning chains.\n")
-            break
-
         else:
-            print("[Action] No explicit restart or final answer found. Selecting the most logical chain and syntehtize the final answer.\n")
-            break
+            print("[Action] No explicit restart instructions found. Proceeding with default behavior.\n")
+    
+   
+    selected_chain = None
+    final_answer = None
 
-    # If no final solution was synthesized, choose the most logical chain
+    if "Selected Chain:" in global_check_result:
+        selected_chain_start = global_check_result.find("Selected Chain:")
+        selected_chain = global_check_result[selected_chain_start:].split("\n")[0].strip()
+
+    if "Final Answer:" in global_check_result:
+        final_answer_start = global_check_result.find("Final Answer:")
+        final_answer = global_check_result[final_answer_start:].split("\n")[0].strip()
+
+    if selected_chain and final_answer:
+        print(f"[Action] Selected {selected_chain}\n")
+        print(f"[Final Solution]: {final_answer}\n")
+    else:
+        print("[Action] No explicit selection or final answer was found. Reviewing the output manually.\n")
+
+    """
     if not final_solution:
         select_prompt = (
             "You are an advanced reasoning AI tasked with selecting the most logical and reasonable reasoning chain "
@@ -322,6 +323,8 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
     # Print the final solution
     print("\n[Final Solution]\n")
     print(final_solution, "\n")
+
+    """
 
     return final_solution
 
@@ -429,4 +432,4 @@ if __name__ == "__main__":
     )
 
     # Example problem solution (no changes to functionality)
-    final_solution = solve_problem_holistically(problem3, max_steps=10, max_restarts=5)
+    final_solution = solve_problem_holistically(problem1, max_steps=10, max_restarts=5)
