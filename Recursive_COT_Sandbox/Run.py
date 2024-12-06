@@ -187,7 +187,7 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
 
         global_check_prompt += (
             "Instructions:\n"
-            "1. Identify any key assumptions in the reasoning chains or even possible deviations that could alter the final result. Are there any different routes or reasoning we could have used to reach a different answer from a logical perspective? List them clearly under the keyword 'Identified Assumptions:'.\n"
+            "1. Identify any key assumptions in the reasoning chains or even possible deviations that could alter the final result. Are there any different routes or reasoning we could have used to reach a different answer from a logical perspective in a real world scenario? List them clearly under the keyword 'Identified Assumptions:'.\n"
             "2. Provide explicit instructions for how to restart the reasoning chain, incorporating these assumptions or even these inverses if they present a different reasoning path from the very first step. "
             "List these instructions under the keyword 'Restart Instructions:'.\n\n"
             "If you find no additional assumptions or instructions are needed, reply with 'NO_ADDITIONAL_ASSUMPTIONS'."
@@ -251,7 +251,7 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
 if __name__ == "__main__":
     # Example problems (unchanged)
     problem1 = (
-        "You are an expert at reasoning and you always pick the most realistic answer. Think step by step and output your reasoning followed by your final answer using the following format: Final Answer: X where X is one of the letters A, B, C, D, E, or F.\n"
+        "You are an expert at reasoning and you always pick the most realistic answer. \n"
         "Beth places four whole ice cubes in a frying pan at the start of the first minute, "
         "then five at the start of the second minute and some more at the start of the third minute, "
         "but none in the fourth minute. If the average number of ice cubes per minute placed in the pan "
@@ -260,7 +260,7 @@ if __name__ == "__main__":
     )
 
     problem2 = (
-        "You are an expert at reasoning and you always pick the most realistic answer. Think step by step and output your reasoning followed by your final answer using the following format: Final Answer: X where X is one of the letters A, B, C, D, E, or F.\n"
+        "You are an expert at reasoning and you always pick the most realistic answer. \n"
         "A juggler throws a solid blue ball a meter in the air and then a solid purple ball (of the same size) two meters in the air. "
         "She then climbs to the top of a tall ladder carefully, balancing a yellow balloon on her head. "
         "Where is the purple ball most likely now, in relation to the blue ball?\n"
@@ -269,7 +269,7 @@ if __name__ == "__main__":
     )
 
     problem3 = (
-        "You are an expert at reasoning and you always pick the most realistic answer. Think step by step and output your reasoning followed by your final answer using the following format: Final Answer: X where X is one of the letters A, B, C, D, E, or F.\n"
+        "You are an expert at reasoning and you always pick the most realistic answer. \n"
         "Jeff, Jo and Jim are in a 200m men's race, starting from the same position. "
         "When the race starts, Jeff 63, slowly counts from -10 to 10 (but forgets a number) before staggering over the 200m finish line, "
         "Jo, 69, hurriedly diverts up the stairs of his local residential tower, stops for a couple seconds to admire the city skyscraper roofs in the mist below, "
@@ -279,7 +279,7 @@ if __name__ == "__main__":
     )
 
     problem4 = (
-        "You are an expert at reasoning and you always pick the most realistic answer. Think step by step and output your reasoning followed by your final answer using the following format: Final Answer: X where X is one of the letters A, B, C, D, E, or F.\n"
+        "You are an expert at reasoning and you always pick the most realistic answer. \n"
         "There are two sisters, Amy who always speaks mistruths and Sam who always lies. You don't know which is which. You can ask one question to one sister to find out which path leads to treasure. Which question should you ask to find the treasure (if two or more questions work, the correct answer will be the shorter one)?\n"
         "A. \"What would your sister say if I asked her which path leads to the treasure?\"\n"
         "B. \"What is your sister’s name?\"\n"
@@ -290,7 +290,7 @@ if __name__ == "__main__":
     )
 
     problem5 = (
-        "You are an expert at reasoning and you always pick the most realistic answer. "
+        "You are an expert at reasoning and you always pick the most realistic answer. \n"
         "Think step by step and output your reasoning followed by your final answer using the following format: "
         "Final Answer: X where X is one of the letters A, B, C, D, E, or F.\n"
         "Peter needs CPR from his best friend Paul, the only person around. However, Paul's last text exchange with Peter "
@@ -300,13 +300,13 @@ if __name__ == "__main__":
     )
 
     problem6 = (
-        "You are an expert at reasoning and you always pick the most realistic answer. Think step by step and output your reasoning followed by your final answer using the following format: Final Answer: X where X is one of the letters A, B, C, D, E, or F.\n"
+        "You are an expert at reasoning and you always pick the most realistic answer. \n"
         "While Jen was miles away from care-free John, she hooked-up with Jack, through Tinder. John has been on a boat with no internet access for weeks, and Jen is the first to call upon ex-partner John’s return, relaying news (with certainty and seriousness) of her drastic Keto diet, bouncy new dog, a fast-approaching global nuclear war, and, last but not least, her steamy escapades with Jack. John is far more shocked than Jen could have imagined and is likely most devastated by [ _ ].\n"
         "A. wider international events\nB. the lack of internet\nC. the dog without prior agreement\nD. sea sickness\nE. the drastic diet\nF. the escapades\n"
     )
 
     problem7 = (
-        "You are an expert at reasoning and you always pick the most realistic answer. Think step by step and output your reasoning followed by your final answer using the following format: Final Answer: X where X is one of the letters A, B, C, D, E, or F.\n"
+        "You are an expert at reasoning and you always pick the most realistic answer. \n"
         "John is 24 and a kind, thoughtful and apologetic person. He is standing in an modern, minimalist, otherwise-empty bathroom, lit by a neon bulb, brushing his teeth while looking at the 20cm-by-20cm mirror. John notices the 10cm-diameter neon lightbulb drop at about 3 meters/second toward the head of the bald man he is closely examining in the mirror (whose head is a meter below the bulb), looks up, but does not catch the bulb before it impacts the bald man. The bald man curses, yells 'what an idiot!' and leaves the bathroom. Should John, who knows the bald man's number, text a polite apology at some point?\n"
         "A. no, because the lightbulb was essentially unavoidable\n"
         "B. yes, it would be in character for him to send a polite text apologizing for the incident\n"
@@ -317,7 +317,7 @@ if __name__ == "__main__":
     )
 
     problem8 = (
-        "You are an expert at reasoning and you always pick the most realistic answer. Think step by step and output your reasoning followed by your final answer using the following format: Final Answer: X where X is one of the letters A, B, C, D, E, or F.\n"
+        "You are an expert at reasoning and you always pick the most realistic answer. \n"
         "On a shelf, there is only a green apple, red pear, and pink peach. Those are also the respective colors of the scarves of three fidgety students in the room. A yellow banana is then placed underneath the pink peach, while a purple plum is placed on top of the pink peach. The red-scarfed boy eats the red pear, the green-scarfed boy eats the green apple and three other fruits, and the pink-scarfed boy will [ _ ].\n"
         "A. eat just the yellow banana\n"
         "B. eat the pink, yellow and purple fruits\n"
@@ -328,7 +328,7 @@ if __name__ == "__main__":
     )
 
     problem9 = (
-        "You are an expert at reasoning and you always pick the most realistic answer. Think step by step and output your reasoning followed by your final answer using the following format: Final Answer: X where X is one of the letters A, B, C, D, E, or F.\n"
+        "You are an expert at reasoning and you always pick the most realistic answer. \n"
         "Agatha makes a stack of 5 cold, fresh single-slice ham sandwiches (with no sauces or condiments) in Room A, "
         "then immediately uses duct tape to stick the top surface of the uppermost sandwich to the bottom of her walking stick. "
         "She then walks to Room B, with her walking stick, so how many whole sandwiches are there now, in each room?\n"
@@ -341,7 +341,7 @@ if __name__ == "__main__":
     )
 
     problem10 = (
-        "You are an expert at reasoning and you always pick the most realistic answer. Think step by step and output your reasoning followed by your final answer using the following format: Final Answer: X where X is one of the letters A, B, C, D, E, or F.\n"
+        "You are an expert at reasoning and you always pick the most realistic answer. \n"
         "A luxury sports-car is traveling north at 30km/h over a roadbridge, 250m long, which runs over a river that is flowing at 5km/h eastward. The wind is blowing at 1km/h westward, slow enough not to bother the pedestrians snapping photos of the car from both sides of the roadbridge as the car passes. A glove was stored in the trunk of the car, but slips out of a hole and drops out when the car is half-way over the bridge. Assume the car continues in the same direction at the same speed, and the wind and river continue to move as stated. 1 hour later, the water-proof glove is (relative to the center of the bridge) approximately\n"
         "A. 4km eastward\n"
         "B. <1 km northward\n"
@@ -352,7 +352,7 @@ if __name__ == "__main__":
     )
 
     # Example problem solution (no changes to functionality)
-    final_solution = solve_problem_holistically(problem3, max_steps=10, max_restarts=5)
+    final_solution = solve_problem_holistically(problem1, max_steps=10, max_restarts=5)
 
 """
     
