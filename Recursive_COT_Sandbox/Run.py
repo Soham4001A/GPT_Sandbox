@@ -53,7 +53,7 @@ def generate_step(problem_description, previous_steps=None):
 
     return query_gpt(prompt)
 
-def holistic_feedback_gate(problem_description, steps):
+def holistic_feedback_gate(problem_description, steps, restart_instructions=None):
     """
     Provides feedback on the latest reasoning step to ensure it follows logically and fits the problem context.
     If flaws are found, returns 'No' with suggestions. If acceptable, returns 'Yes'.
@@ -64,6 +64,11 @@ def holistic_feedback_gate(problem_description, steps):
     steps_text = "\n".join(f"Step {i}: {step}" for i, step in enumerate(steps, 1))
     latest_step_index = len(steps)
     latest_step = steps[-1] if steps else ""
+    
+    # Include Restart Instructions if they exist
+    restart_context = (
+        f"\n\nRestart Instructions:\n{restart_instructions}" if restart_instructions else ""
+    )
 
     prompt = (
         "You are an advanced reasoning AI tasked with validating a step-by-step reasoning process. "
@@ -72,8 +77,9 @@ def holistic_feedback_gate(problem_description, steps):
         f"Problem:\n{problem_description}\n\n"
         f"Steps so far:\n{steps_text}\n\n"
         f"Evaluate the latest step (Step {latest_step_index}):\n"
-        f"{latest_step}\n\n"
-        "1. Does the latest step logically follow from the previous steps?\n"
+        f"{latest_step}\n"
+        f"{restart_context}\n\n"
+        "1. Does the latest step logically follow from the previous steps and restart instructions?\n"
         "2. Are there any critical flaws or incorrect assumptions in the latest step?\n"
         "3. Does it address the problem from a natural, logical, and reasonable perspective?\n"
         "4. Do the laws of physics and principles of natural logic apply to this step?\n\n"
@@ -98,6 +104,7 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
     reasoning_chains = []
     final_solution = None
     identified_assumptions = []
+    global_check_prompt = ""
 
     for restart_num in range(max_restarts):
         print(f"\n--- Restart {restart_num + 1} ---\n")
@@ -106,21 +113,13 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
 
         # Incorporate identified assumptions into the problem description if any
         if identified_assumptions:
-            assumptions_to_explore = []
-            for assumption in identified_assumptions:
-                # Prioritize inverse assumptions
-                if assumption.startswith("Inverse of:"):
-                    assumptions_to_explore.append(assumption)
-                else:
-                    # Generate inverse assumption
-                    inverse_assumption = f"Inverse of: {assumption}"
-                    assumptions_to_explore.append(inverse_assumption)
-
             problem_with_assumptions = (
                 problem_description +
-                "\n\nConsider the following identified assumptions and their inverses:\n" +
-                "\n".join(f"- {assumption}" for assumption in assumptions_to_explore)
+                "\n\nConsider the following identified assumptions:\n" +
+                "\n".join(f"- {assumption}" for assumption in identified_assumptions)
             )
+            #print(problem_with_assumptions)
+            #exit(-1)
         else:
             problem_with_assumptions = problem_description
 
@@ -144,7 +143,7 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
             print(f"[Generated Step {step_num + 1}] {step_content}\n")
 
             # Validate the reasoning of the current step
-            feedback = holistic_feedback_gate(problem_with_assumptions, steps)
+            feedback = holistic_feedback_gate(problem_with_assumptions, steps, identified_assumptions)
             feedback_log.append(feedback)
 
             if feedback.startswith("No"):
@@ -172,11 +171,11 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
 
         # Add the generated chain of reasoning steps to the list
         reasoning_chains.append(steps)
-
+        
         # Perform a global consistency check across all generated chains
-        global_check_prompt = (
-            "You are an advanced reasoning AI tasked with validating multiple reasoning chains "
-            "to holistically address a problem. Analyze all the chains below for assumptions, flaws, or inconsistencies.\n\n"
+        global_check_prompt += (
+            "You are an advanced reasoning AI tasked with identifying assumptions and logical gaps in reasoning. "
+            "Your goal is to suggest how the reasoning chain can be improved by adding relevant assumptions or addressing overlooked ones.\n\n"
             f"Problem Description:\n{problem_with_assumptions}\n\n"
             "Reasoning Chains:\n"
         )
@@ -187,14 +186,11 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
             global_check_prompt += "\n"
 
         global_check_prompt += (
-            "For each reasoning chain, perform the following analysis:\n"
-            "1. Identify any incorrect assumptions or deviations from the problem's context.\n"
-            "2. Highlight any assumptions that were not explicitly stated but are necessary for a logical solution.\n"
-            "3. Compare the reasoning chains and note any discrepancies.\n\n"
-            "If there are unexplored assumptions or alternative logical paths not yet tested, propose a new focus starting with 'Proposed New Focus' followed by the focuses to guide a reasoning chain restart.\n"
-            "If all relevant assumptions have been sufficiently explored, synthesize the most logical and reasonable answer from the chains provided.\n\n"
-            "If any assumptions are identified, include specifically 'Restart with adjusted focus:' followed by the suggested assumptions.\n"
-            "If a final answer is synthesized, include 'Final Answer:' followed by your conclusion."
+            "Instructions:\n"
+            "1. Identify any key assumptions in the reasoning chains or even possible deviations that could alter the final result. Are there any different routes or reasoning we could have used to reach a different answer from a logical perspective? List them clearly under the keyword 'Identified Assumptions:'.\n"
+            "2. Provide explicit instructions for how to restart the reasoning chain, incorporating these assumptions or even these inverses if they present a different reasoning path from the very first step. "
+            "List these instructions under the keyword 'Restart Instructions:'.\n\n"
+            "If you find no additional assumptions or instructions are needed, reply with 'NO_ADDITIONAL_ASSUMPTIONS'."
         )
 
         global_check_result = query_gpt(global_check_prompt, max_tokens=1500, temperature=0.9, presence_penalty=0.5)
@@ -202,33 +198,26 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
         print(global_check_result, "\n")
 
         # Decide next action based on the global check
-        if "Restart with Adjusted Focus:" in global_check_result:
-            print("[Action] Restart suggested with adjusted focus.\n")
-            assumption_text = global_check_result.split("Restart with adjusted focus:")[-1].strip()
-            identified_assumptions.append(assumption_text)
-            identified_assumptions.append(f"Inverse of: {assumption_text}")
-            continue
-        elif "Proposed New Focus" in global_check_result:
-            print("[Action] Restart suggested with a proposed new focus.\n")
-            focus_start = global_check_result.find("Proposed New Focus:")
-            if focus_start != -1:
-                # Extract the lines after "Proposed New Focus:"
-                lines_after_focus = global_check_result[focus_start:].split("\n")
-                if len(lines_after_focus) > 1:
-                    proposed_focus = lines_after_focus[1].strip()
-                    identified_assumptions.append(proposed_focus)
-                else:
-                    # Handle the case where no focus line is given
-                    print("[Warning] 'Proposed New Focus:' found but no subsequent line provided.")
-            else:
-                # Handle the scenario when "Proposed New Focus:" is not found at all
-                print("[Warning] 'Proposed New Focus:' not found in the global_check_result.")
-        elif "Final Answer:" in global_check_result:
-            print("[Action] Final Answer synthesized.\n")
-            final_solution = global_check_result
+        if "Restart Instructions:" in global_check_result:
+            print("[Action] Restart suggested with new instructions.\n")
+            
+            # Clear the list of assumptions before adding new ones
+            identified_assumptions.clear()
+
+            # Extract restart instructions
+            restart_instructions_start = global_check_result.find("Restart Instructions:")
+            new_assumptions = global_check_result[restart_instructions_start:].strip()
+            
+            # Append the new assumptions
+            identified_assumptions.append(new_assumptions)
+            continue  # Restart the reasoning chain
+
+        elif "NO_ADDITIONAL_ASSUMPTIONS" in global_check_result:
+            print("[Action] No additional assumptions needed. Proceeding with existing reasoning chains.\n")
             break
+
         else:
-            print("[Action] No explicit restart or final answer found. Selecting the most logical chain.\n")
+            print("[Action] No explicit restart or final answer found. Selecting the most logical chain and syntehtize the final answer.\n")
             break
 
     # If no final solution was synthesized, choose the most logical chain
@@ -262,6 +251,7 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
 if __name__ == "__main__":
     # Example problems (unchanged)
     problem1 = (
+        "You are an expert at reasoning and you always pick the most realistic answer. Think step by step and output your reasoning followed by your final answer using the following format: Final Answer: X where X is one of the letters A, B, C, D, E, or F.\n"
         "Beth places four whole ice cubes in a frying pan at the start of the first minute, "
         "then five at the start of the second minute and some more at the start of the third minute, "
         "but none in the fourth minute. If the average number of ice cubes per minute placed in the pan "
@@ -270,6 +260,7 @@ if __name__ == "__main__":
     )
 
     problem2 = (
+        "You are an expert at reasoning and you always pick the most realistic answer. Think step by step and output your reasoning followed by your final answer using the following format: Final Answer: X where X is one of the letters A, B, C, D, E, or F.\n"
         "A juggler throws a solid blue ball a meter in the air and then a solid purple ball (of the same size) two meters in the air. "
         "She then climbs to the top of a tall ladder carefully, balancing a yellow balloon on her head. "
         "Where is the purple ball most likely now, in relation to the blue ball?\n"
@@ -278,6 +269,7 @@ if __name__ == "__main__":
     )
 
     problem3 = (
+        "You are an expert at reasoning and you always pick the most realistic answer. Think step by step and output your reasoning followed by your final answer using the following format: Final Answer: X where X is one of the letters A, B, C, D, E, or F.\n"
         "Jeff, Jo and Jim are in a 200m men's race, starting from the same position. "
         "When the race starts, Jeff 63, slowly counts from -10 to 10 (but forgets a number) before staggering over the 200m finish line, "
         "Jo, 69, hurriedly diverts up the stairs of his local residential tower, stops for a couple seconds to admire the city skyscraper roofs in the mist below, "
@@ -298,13 +290,13 @@ if __name__ == "__main__":
     )
 
     problem5 = (
-    "You are an expert at reasoning and you always pick the most realistic answer. "
-    "Think step by step and output your reasoning followed by your final answer using the following format: "
-    "Final Answer: X where X is one of the letters A, B, C, D, E, or F.\n"
-    "Peter needs CPR from his best friend Paul, the only person around. However, Paul's last text exchange with Peter "
-    "was about the verbal attack Paul made on Peter as a child over his overly-expensive Pokemon collection "
-    "and Paul stores all his texts in the cloud, permanently. Paul will [ _ ] help Peter.\n"
-    "A. probably not\nB. definitely\nC. half-heartedly\nD. not\nE. pretend to\nF. ponder deeply over whether to\n"
+        "You are an expert at reasoning and you always pick the most realistic answer. "
+        "Think step by step and output your reasoning followed by your final answer using the following format: "
+        "Final Answer: X where X is one of the letters A, B, C, D, E, or F.\n"
+        "Peter needs CPR from his best friend Paul, the only person around. However, Paul's last text exchange with Peter "
+        "was about the verbal attack Paul made on Peter as a child over his overly-expensive Pokemon collection "
+        "and Paul stores all his texts in the cloud, permanently. Paul will [ _ ] help Peter.\n"
+        "A. probably not\nB. definitely\nC. half-heartedly\nD. not\nE. pretend to\nF. ponder deeply over whether to\n"
     )
 
     problem6 = (
@@ -336,21 +328,16 @@ if __name__ == "__main__":
     )
 
     problem9 = (
-    "Agatha makes a stack of 5 cold, fresh single-slice ham sandwiches (with no sauces or condiments) in Room A, "
-    "then immediately uses duct tape to stick the top surface of the uppermost sandwich to the bottom of her walking stick. "
-    "She then walks to Room B, with her walking stick, so how many whole sandwiches are there now, in each room?\n"
-    "A. 4 whole sandwiches in room A, 0 whole sandwiches in Room B\n"
-    "B. no sandwiches anywhere\n"
-    "C. 4 whole sandwiches in room B, 1 whole sandwich in Room A\n"
-    "D. All 5 whole sandwiches in Room B\n"
-    "E. 4 whole sandwiches in Room B, 1 whole sandwiches in room A\n"
-    "F. All 5 whole sandwiches in Room A\n"
-    )
-
-    problem9a = (
-    "Agatha makes a stack of 5 cold, fresh single-slice ham sandwiches (with no sauces or condiments) in Room A, "
-    "then immediately uses duct tape to stick the top surface of the uppermost sandwich to the bottom of her walking stick. "
-    "She then walks to Room B, with her walking stick, so how many whole sandwiches are there now, in each room?\n"
+        "You are an expert at reasoning and you always pick the most realistic answer. Think step by step and output your reasoning followed by your final answer using the following format: Final Answer: X where X is one of the letters A, B, C, D, E, or F.\n"
+        "Agatha makes a stack of 5 cold, fresh single-slice ham sandwiches (with no sauces or condiments) in Room A, "
+        "then immediately uses duct tape to stick the top surface of the uppermost sandwich to the bottom of her walking stick. "
+        "She then walks to Room B, with her walking stick, so how many whole sandwiches are there now, in each room?\n"
+        "A. 4 whole sandwiches in room A, 0 whole sandwiches in Room B\n"
+        "B. no sandwiches anywhere\n"
+        "C. 4 whole sandwiches in room B, 1 whole sandwich in Room A\n"
+        "D. All 5 whole sandwiches in Room B\n"
+        "E. 4 whole sandwiches in Room B, 1 whole sandwiches in room A\n"
+        "F. All 5 whole sandwiches in Room A\n"
     )
 
     problem10 = (
@@ -365,7 +352,7 @@ if __name__ == "__main__":
     )
 
     # Example problem solution (no changes to functionality)
-    final_solution = solve_problem_holistically(problem1, max_steps=10, max_restarts=5)
+    final_solution = solve_problem_holistically(problem3, max_steps=10, max_restarts=5)
 
 """
     
@@ -381,6 +368,5 @@ if __name__ == "__main__":
     8. 
     9.  
     10. 
-    
     
 """
