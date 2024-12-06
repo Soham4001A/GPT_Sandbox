@@ -4,16 +4,17 @@ start
 :Initialize global variables;
 :Load problem description and assumptions;
 
-repeat while max_restarts is not exceeded
+while (max_restarts not exceeded?) is (yes)
     :Restart reasoning process (restart loop);
     :Initialize steps and feedback log;
+
     if (identified assumptions exist?) then (yes)
         :Incorporate assumptions into the problem description;
     else (no)
         :Use original problem description;
     endif
 
-    repeat while max_steps is not exceeded
+    while (max_steps not exceeded?) is (yes)
         :Generate next reasoning step;
         if (step generation fails?) then (yes)
             :Log error and exit loop;
@@ -40,26 +41,24 @@ repeat while max_restarts is not exceeded
                 :Accept step and proceed;
             endif
         endif
-    repeat endwhile
+    endwhile
 
     :Add generated reasoning chain to list;
     :Perform global consistency check;
 
     if (restart instructions are provided?) then (yes)
         :Extract and update assumptions for restart;
-        continue restart loop;
     else (no)
-        :Check if no additional assumptions are needed;
-        if (no additional assumptions?) then (yes)
+        if (no additional assumptions needed?) then (yes)
             :Finalize solution;
-            break restart loop;
+            stop
         else (no)
             :Select most logical chain and finalize answer;
-            break restart loop;
+            stop
         endif
     endif
-repeat endwhile
+endwhile
 
 :Return final solution;
-end
+stop
 @enduml

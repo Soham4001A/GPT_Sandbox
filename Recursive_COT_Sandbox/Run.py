@@ -236,7 +236,7 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
             "   - Logical consistency with problem constraints (1-4 points).\n"
             "   - Realistic alignment between outputs and reasoning (1-2 points).\n"
             "3. If flaws or incorrect assumptions are found, provide 'Restart Instructions' and suggest how the reasoning chain should be adjusted.\n"
-            "4. If no restarts are needed, state 'NO_ADDITIONAL_ASSUMPTIONS'.\n\n"
+            "4. If no restarts or assumptions are needed, clearly state 'NO_ADDITIONAL_ASSUMPTIONS'.\n\n"
             "Output your results in the following format:\n"
             "- Chain 1: [Score] - [Justification]\n"
             "- Chain 2: [Score] - [Justification]\n"
