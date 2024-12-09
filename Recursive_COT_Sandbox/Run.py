@@ -1,11 +1,16 @@
 import os
+import requests
 from openai import OpenAI
-from secret_files import OpenAI_API_KEY, ANTHROPIC_API_KEY
+from secret_files import OpenAI_API_KEY, ANTHROPIC_API_KEY, HF_AUTH_TOKEN
 from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT
+from huggingface_hub import InferenceClient
 
 # Set which model to use
-USE_GPT = True
-USE_CLAUDE = False
+USE_GPT = False
+USE_CLAUDE = True
+USE_LLAMA = False
+
+HF_ENDPOINT_URL = ''
 
 client = OpenAI(api_key=OpenAI_API_KEY)
 # Define a global system message at the start of your script or inside query_gpt
@@ -21,6 +26,63 @@ GPT_SYSTEM_MESSAGE = (
     "each output is realistic, logically consistent, timely, and consider previously inputs. "
     "If a conclusion seems unrealistic, adjust it before finalizing."
 )
+
+def query_llama_remotely(prompt, max_tokens=1500, temperature=0.7):
+    """
+    Query the LLaMA model using a Hugging Face Inference Endpoint.
+    """
+    headers = {
+        "Authorization": f"Bearer {HF_AUTH_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "inputs": prompt,
+        "parameters": {
+            "max_new_tokens": max_tokens,
+            "temperature": temperature,
+            "do_sample": True
+        }
+    }
+    try:
+        response = requests.post(HF_ENDPOINT_URL, headers=headers, json=payload)
+        response.raise_for_status()
+        result = response.json()
+        return result.get("generated_text", "No output generated").strip()
+    except Exception as e:
+        return f"Error querying LLaMA remotely via Inference Endpoint: {e}"
+
+def query_claude_via_messages(prompt, system_message=CLAUDE_SYSTEM_MESSAGE, max_tokens=1500):
+    """
+    Query Anthropic's Claude model using the Anthropic Messages API.
+    """
+    try:
+        client = Anthropic(api_key=ANTHROPIC_API_KEY)
+
+        # Construct the messages list
+        messages = [
+            {"role": "user", "content": prompt}
+        ]
+
+        # Send the request with a top-level system parameter
+        response = client.messages.create(
+            model="claude-3-opus-20240229",  # Replace with the correct model name
+            messages=messages,
+            system=system_message,  # Pass system message at top level
+            max_tokens=max_tokens  # Include the max_tokens parameter
+        )
+
+        # Debugging: Print the response type and structure
+        #print("Response type:", type(response))
+        print("Response content:", response)
+
+        # Extract the 'content' attribute from the Message object
+        if hasattr(response, 'content'):
+            return response.content[0].text.strip()  # Adjust based on the attribute's structure
+        else:
+            return "Error: Unexpected response format (content attribute missing)"
+
+    except Exception as e:
+        return f"Error querying Claude: {e}"
 
 # Query function for both models
 def query_gpt(prompt, max_tokens=1500, temperature=0.7, presence_penalty=0):
@@ -40,17 +102,20 @@ def query_gpt(prompt, max_tokens=1500, temperature=0.7, presence_penalty=0):
             return response.choices[0].message.content.strip() if response.choices else ""
         except Exception as e:
             return f"Error querying GPT: {e}"
+        
     elif USE_CLAUDE:
-        client = Anthropic(api_key=os.getenv(ANTHROPIC_API_KEY))
+        client = Anthropic(api_key=ANTHROPIC_API_KEY)
         try:
-            response = client.completions.create(
-                model="claude-3.5",
-                prompt=f"{HUMAN_PROMPT}{CLAUDE_SYSTEM_MESSAGE}\n\n{prompt}{AI_PROMPT}",
-                max_tokens_to_sample=max_tokens
-            )
-            return response.completion.strip()
+            response = query_claude_via_messages(prompt, max_tokens=1500)
+            return response.strip()  # Directly process the string response
         except Exception as e:
             return f"Error querying Claude: {e}"
+        
+    elif USE_LLAMA:
+        try:
+            return query_llama_remotely(prompt, max_tokens=max_tokens, temperature=temperature)
+        except Exception as e:
+            return f"Error querying LLaMA: {e}"
     else:
         return "Error: No model selected. Set USE_GPT or USE_CLAUDE to True."
 
@@ -456,3 +521,4 @@ if __name__ == "__main__":
 
     # Example problem solution (no changes to functionality)
     final_solution = solve_problem_holistically(problem1, max_steps=10, max_restarts=5)
+    #print(query_gpt(problem1_Llama))
