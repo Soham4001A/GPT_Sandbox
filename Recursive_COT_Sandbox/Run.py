@@ -1,35 +1,58 @@
 import os
 from openai import OpenAI
-from secret_files import OpenAI_API_KEY
+from secret_files import OpenAI_API_KEY, ANTHROPIC_API_KEY
+from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT
+
+# Set which model to use
+USE_GPT = True
+USE_CLAUDE = False
 
 client = OpenAI(api_key=OpenAI_API_KEY)
 # Define a global system message at the start of your script or inside query_gpt
 
+CLAUDE_SYSTEM_MESSAGE = (
+    "You are an advanced assistant with expert reasoning skills. Respond clearly and logically, "
+    "ensuring your output is concise, practical, and directly addresses the query."
+)
 
-SYSTEM_MESSAGE = (
+GPT_SYSTEM_MESSAGE = (
     "You are an advanced reasoning AI. Your role is to solve problems "
     "with clear logic, considering real-world constraints such physics and human behavior. Always verify "
     "each output is realistic, logically consistent, timely, and consider previously inputs. "
     "If a conclusion seems unrealistic, adjust it before finalizing."
 )
 
+# Query function for both models
 def query_gpt(prompt, max_tokens=1500, temperature=0.7, presence_penalty=0):
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": SYSTEM_MESSAGE},  # Added system message
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=max_tokens,
-            temperature=temperature,
-            presence_penalty=presence_penalty
-        )
-        if response.choices and len(response.choices) > 0:
-            return response.choices[0].message.content.strip()
-        return None
-    except Exception as e:
-        return f"Error: {e}"
+    if USE_GPT:
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": GPT_SYSTEM_MESSAGE},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=max_tokens,
+                temperature=temperature,
+                presence_penalty=presence_penalty
+            )
+            return response.choices[0].message.content.strip() if response.choices else ""
+        except Exception as e:
+            return f"Error querying GPT: {e}"
+    elif USE_CLAUDE:
+        client = Anthropic(api_key=os.getenv(ANTHROPIC_API_KEY))
+        try:
+            response = client.completions.create(
+                model="claude-3.5",
+                prompt=f"{HUMAN_PROMPT}{CLAUDE_SYSTEM_MESSAGE}\n\n{prompt}{AI_PROMPT}",
+                max_tokens_to_sample=max_tokens
+            )
+            return response.completion.strip()
+        except Exception as e:
+            return f"Error querying Claude: {e}"
+    else:
+        return "Error: No model selected. Set USE_GPT or USE_CLAUDE to True."
 
 def generate_step(problem_description, previous_steps=None):
     """
