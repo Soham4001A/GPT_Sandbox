@@ -16,20 +16,54 @@ reduced_cost = system_cost / 1.5  # Adjusted to show reduced computational load
 
 # Create the plot
 plt.figure(figsize=(10, 6))
-plt.plot(x, baseline_cost, label="Baseline Cost (y=mx)", linestyle='--', color='blue')
-plt.plot(x, system_cost, label="System Cost (Exponential Growth)", color='red')
-plt.plot(x, reduced_cost, label="Cost with Helper Models", color='green')
+plt.plot(x, baseline_cost, label="Baseline Model", linestyle='--', color='blue')
+plt.plot(x, system_cost, label="Single Model Iterative", color='red')
+plt.plot(x, reduced_cost, label="System of Models", color='green')
 
 # Add labels, title, and legend
-plt.title("Comparative Analysis of Computational Costs", fontsize=14)
-plt.xlabel("Reasoning Steps", fontsize=12)
+plt.title("Computational Costs vs Queries", fontsize=14)
+plt.xlabel("Model Queries", fontsize=12)
 plt.ylabel("Computational Cost", fontsize=12)
 plt.legend(fontsize=12)
 plt.grid(True)
+
+# Hide axis numbers but keep axis titles
+plt.gca().xaxis.set_ticks([])  # Hide x-axis tick numbers
+plt.gca().yaxis.set_ticks([])  # Hide y-axis tick numbers
+
 plt.tight_layout()
 
 # Show the plot
 plt.show()
+
+
+# Create the plot
+plt.figure(figsize=(10, 6))
+plt.plot(x, baseline_cost, label="Baseline Model", linestyle='--', color='blue')
+plt.plot(x, system_cost, label="Single Model Iterative", color='red')
+plt.plot(x, reduced_cost, label="System of Models", color='green')
+
+# Add labels, title, and legend
+plt.title("Computational Costs (Log Scale) vs Queries", fontsize=14)
+plt.xlabel("Model Queries", fontsize=12)
+plt.ylabel("Computational Cost (Log Scale)", fontsize=12)
+plt.legend(fontsize=12)
+
+# Set the y-axis to log scale
+plt.yscale('log')
+
+# Add grid and other formatting
+plt.grid(True, which="both", linestyle='--', linewidth=0.5)
+plt.gca().xaxis.set_ticks([])  # Hide x-axis tick numbers
+plt.gca().yaxis.set_ticks([])  # Hide y-axis tick numbers
+
+plt.tight_layout()
+
+# Show the plot
+plt.show()
+
+
+exit(1)
 
 def generate_3d_heatmap_background(ax, pos, heat_values, resolution=50):
     """
