@@ -87,7 +87,7 @@ def query_claude_via_messages(prompt, system_message=CLAUDE_SYSTEM_MESSAGE, max_
 # Query function for both models
 def query_gpt(prompt, max_tokens=1500, temperature=0.7, presence_penalty=0):
     if USE_GPT:
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        client = OpenAI(api_key=OpenAI_API_KEY)
         try:
             response = client.chat.completions.create(
                 model="gpt-4o",
@@ -125,7 +125,9 @@ def generate_step(problem_description, previous_steps=None):
     Uses GPT to produce a step-by-step solution chain.
     """
     if previous_steps:
-        steps_text = "\n".join(f"Step {i}: {step}" for i, step in enumerate(previous_steps, 1))
+        steps_text = "\n".join(
+            f"Step {i}: {step}" for i, step in enumerate(previous_steps, 1)
+        )
         prompt = (
             "You are an advanced reasoning AI. Each new step must build on previous steps logically and realistically.\n\n"
             f"Problem:\n{problem_description}\n\n"
@@ -227,7 +229,7 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
             # Generate the next step reasoning based on previous steps
             next_step_reasoning = generate_step(
                 problem_with_assumptions,
-                previous_steps=[step['reasoning'] for step in steps]
+                previous_steps=[f"{step['reasoning']} Output: {step['output']}" for step in steps]
             )
 
             # Check if step generation failed
@@ -344,7 +346,8 @@ def solve_problem_holistically(problem_description, max_steps=10, max_restarts=3
         # Process the global check result
 
         # NOTE: This should be replace with a more robust parsing logic and better global check prompting
-        # For now, we will manually force restarts :D
+        # For now, we will manually force restarts for demonstration purposes however if you uncomment it, it should work :)
+        # This was done to observe how forcing restarts even could affect the reasoning chains as they force a high temperature regeneration of the first step
 
         #if "NO_ADDITIONAL_ASSUMPTIONS" in global_check_result:
         #    print("[Action] No additional assumptions needed. Proceeding with existing reasoning chains.\n")
@@ -424,7 +427,12 @@ if __name__ == "__main__":
         "then five at the start of the second minute and some more at the start of the third minute, "
         "but none in the fourth minute. If the average number of ice cubes per minute placed in the pan "
         "while it was frying a crispy egg was five, how many whole ice cubes can be found in the pan at the end of the third minute?\n"
-        "A. 30\nB. 0\nC. 20\nD. 10\nE. 11\nF. 5\n"
+        "A. 30\n"
+        "B. 0\n"
+        "C. 20\n"
+        "D. 10\n"
+        "E. 11\n"
+        "F. 5\n"
     )
 
     problem2 = (
@@ -432,8 +440,12 @@ if __name__ == "__main__":
         "A juggler throws a solid blue ball a meter in the air and then a solid purple ball (of the same size) two meters in the air. "
         "She then climbs to the top of a tall ladder carefully, balancing a yellow balloon on her head. "
         "Where is the purple ball most likely now, in relation to the blue ball?\n"
-        "A. at the same height as the blue ball\nB. at the same height as the yellow balloon\n"
-        "C. inside the blue ball\nD. above the yellow balloon\nE. below the blue ball\nF. above the blue ball\n"
+        "A. at the same height as the blue ball\n"
+        "B. at the same height as the yellow balloon\n"
+        "C. inside the blue ball\n"
+        "D. above the yellow balloon\n"
+        "E. below the blue ball\n"
+        "F. above the blue ball\n"
     )
 
     problem3 = (
@@ -442,8 +454,13 @@ if __name__ == "__main__":
         "When the race starts, Jeff 63, slowly counts from -10 to 10 (but forgets a number) before staggering over the 200m finish line, "
         "Jo, 69, hurriedly diverts up the stairs of his local residential tower, stops for a couple seconds to admire the city skyscraper roofs in the mist below, "
         "before racing to finish the 200m, while exhausted Jim, 80, gets through reading a long tweet, waving to a fan and thinking about his dinner before walking over the 200m finish line. "
-        "[ _ ] likely finished last.\nA. Jo likely finished last\nB. Jeff and Jim likely finished last, at the same time\nC. Jim likely finished last\nD. Jeff likely finished last\n"
-        "E. All of them finished simultaneously\nF. Jo and Jim likely finished last, at the same time\n"
+        "[ _ ] likely finished last.\n"
+        "A. Jo likely finished last\n"
+        "B. Jeff and Jim likely finished last, at the same time\n"
+        "C. Jim likely finished last\n"
+        "D. Jeff likely finished last\n"
+        "E. All of them finished simultaneously\n"
+        "F. Jo and Jim likely finished last, at the same time\n"
     )
 
     problem4 = (
@@ -464,13 +481,22 @@ if __name__ == "__main__":
         "Peter needs CPR from his best friend Paul, the only person around. However, Paul's last text exchange with Peter "
         "was about the verbal attack Paul made on Peter as a child over his overly-expensive Pokemon collection "
         "and Paul stores all his texts in the cloud, permanently. Paul will [ _ ] help Peter.\n"
-        "A. probably not\nB. definitely\nC. half-heartedly\nD. not\nE. pretend to\nF. ponder deeply over whether to\n"
+        "A. probably not\n"
+        "B. definitely\n"
+        "C. half-heartedly\n"
+        "D. not\nE. pretend to\n"
+        "F. ponder deeply over whether to\n"
     )
 
     problem6 = (
         "You are an expert at reasoning and you always pick the most realistic answer. \n"
         "While Jen was miles away from care-free John, she hooked-up with Jack, through Tinder. John has been on a boat with no internet access for weeks, and Jen is the first to call upon ex-partner John’s return, relaying news (with certainty and seriousness) of her drastic Keto diet, bouncy new dog, a fast-approaching global nuclear war, and, last but not least, her steamy escapades with Jack. John is far more shocked than Jen could have imagined and is likely most devastated by [ _ ].\n"
-        "A. wider international events\nB. the lack of internet\nC. the dog without prior agreement\nD. sea sickness\nE. the drastic diet\nF. the escapades\n"
+        "A. wider international events\n"
+        "B. the lack of internet\n"
+        "C. the dog without prior agreement\n"
+        "D. sea sickness\n"
+        "E. the drastic diet\n"
+        "F. the escapades\n"
     )
 
     problem7 = (
@@ -520,5 +546,5 @@ if __name__ == "__main__":
     )
 
     # Example problem solution (no changes to functionality)
-    final_solution = solve_problem_holistically(problem1, max_steps=10, max_restarts=5)
+    final_solution = solve_problem_holistically(problem10, max_steps=10, max_restarts=3)
     #print(query_gpt(problem1_Llama))
