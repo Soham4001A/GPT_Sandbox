@@ -22,7 +22,7 @@ plt.plot(x, reduced_cost, label="System of Models", color='green')
 
 # Add labels, title, and legend
 plt.title("Computational Costs vs Queries", fontsize=14)
-plt.xlabel("Model Queries", fontsize=12)
+plt.xlabel("Prompt Complexity", fontsize=12)
 plt.ylabel("Computational Cost", fontsize=12)
 plt.legend(fontsize=12)
 plt.grid(True)
@@ -45,7 +45,7 @@ plt.plot(x, reduced_cost, label="System of Models", color='green')
 
 # Add labels, title, and legend
 plt.title("Computational Costs (Log Scale) vs Queries", fontsize=14)
-plt.xlabel("Model Queries", fontsize=12)
+plt.xlabel("Prompt Complexity", fontsize=12)
 plt.ylabel("Computational Cost (Log Scale)", fontsize=12)
 plt.legend(fontsize=12)
 
@@ -53,7 +53,7 @@ plt.legend(fontsize=12)
 plt.yscale('log')
 
 # Add grid and other formatting
-plt.grid(True, which="both", linestyle='--', linewidth=0.5)
+#plt.grid(True, which="both", linestyle='--', linewidth=0.5)
 plt.gca().xaxis.set_ticks([])  # Hide x-axis tick numbers
 plt.gca().yaxis.set_ticks([])  # Hide y-axis tick numbers
 
